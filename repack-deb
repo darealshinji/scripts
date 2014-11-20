@@ -1,0 +1,84 @@
+#!/bin/sh
+
+set -e
+
+# repack-deb - Repack Debian package with xz compression algorithm
+
+# Copyright (c) 2014, djcj <djcj@gmx.de>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+
+# print usage
+if [ -z "$1" ] ; then
+  echo "Repack Debian package with xz compression."
+  echo "Usage: $0 file.deb"
+  exit 0
+fi
+
+# check if it's a file
+if [ ! -f "$1" ] ; then
+  echo "'$1' is not a file"
+  exit 1
+fi
+
+# check for xz compression
+if [ ! -z $(ar t "$1" | grep -e data.tar.xz) ] ; then
+  echo "'$1' is already xz compressed"
+  exit 0
+fi
+
+
+# extract .deb
+echo "extract '$1'"
+ar x "$1"
+
+
+# backup .deb
+echo "move '$1' to '${1}.old'"
+mv "$1" "$1".old
+
+
+# uncompress data.tar
+d=data.tar
+echo "uncompress '`ls ${d}.*`'"
+
+if [ -f ${d}.gz ] ; then
+  gunzip -f ${d}.gz
+elif [ -f ${d}.bz2 ] ; then
+  bunzip2 -f ${d}.bz2
+elif [ -f ${d}.lzma ] ; then
+  unlzma -f ${d}.lzma
+fi
+
+
+# compress data.tar
+echo "compress (xz) '$d'"
+xz $d
+
+
+# create new .deb and remove temporary files
+
+files="debian-binary control.tar.gz ${d}.xz"
+
+echo "create '$1'"
+ar rc "$1" $files
+
+echo "remove temporary files"
+rm -f $files

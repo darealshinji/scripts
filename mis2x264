@@ -1,0 +1,128 @@
+#!/bin/sh
+
+if [ -z "$1" ] ; then
+   echo "Convert MediaInfo encoding settings to x264 commands"
+   echo "Usage: $0 <video>"
+   echo "       $0 \"MediaInfo encoding settings\""
+   exit 0
+fi
+
+
+if [ -f "$1" ] ; then
+    formatprofile=$(mediainfo --Inform="Video;%Format_Profile%" "$1")
+    settings0=$(mediainfo --Inform="Video;%Encoded_Library_Settings%" "$1")
+else
+    settings0="$@"
+fi
+
+
+if [ ! -z "$formatprofile" ] ; then
+    level0=$(echo "$formatprofile" | cut -d '@' -f2 | tail -c-4)
+    level="--level $level0"
+    profile0=$(echo "$formatprofile" | cut -d '@' -f1 | sed -e 's/ //g; s/://g; s/Predictive//g; s/.*/\L&/')
+    profile="--profile $profile0"
+    [ ! "$profile0" = "high422" ] || output_csp="--output-csp i422"
+    [ ! "$profile0" = "high444" ] || output_csp="--output-csp i444"
+fi
+
+
+aq=$(echo "$settings0" | sed -e 's/ \/ /\n/g;' | grep -e 'aq' | sed -e 's/aq=//g')
+aqmode0=$(echo $aq | cut -d ':' -f1)
+aqstrength0=$(echo $aq | cut -d ':' -f2)
+[ -z "$aqmode0" ] || aqmode="--aq-mode $aqmode0"
+[ -z "$aqstrength0" ] || aqstrength="--aq-strength $aqstrength0"
+
+deadzone=$(echo "$settings0" | sed -e 's/ \/ /\n/g;' | grep -e 'deadzone' | sed -e 's/deadzone=//g')
+deadzone_inter0=$(echo $deadzone | cut -d ',' -f1)
+deadzone_intra0=$(echo $deadzone | cut -d ',' -f2)
+[ -z "$deadzone_inter0" ] || deadzone_inter="--deadzone-inter $deadzone_inter0"
+[ -z "$deadzone_intra0" ] || deadzone_intra="--deadzone-intra $deadzone_intra0"
+
+
+partitions0=$(echo "$settings0" | sed -e 's/ \/ /\n/g;' | grep -e 'analyse' | sed -e 's/analyse=//g')
+if [ ! -z "$partitions0" ] ; then
+    ipb=$(echo $partitions0 | cut -d ':' -f2 | sed -e 's/0x//;')
+    if [ $ipb -ge 100 ] ; then
+        b8x8=",b8x8"; ipb=$(($ipb - 100))
+    fi
+    if [ $ipb -ge 10 ] && [ $ipb -lt 30 ] ; then
+        p8x8=",p8x8"; ipb=$(($ipb - 10))
+    fi
+    if [ $ipb -ge 30 ] ; then
+        p8x8=",p8x8"; p4x4=",p4x4"; ipb=$(($ipb - 30))
+    fi
+    case $ipb in
+        1) i4x4=",i4x4" ;;
+        2) i8x8=",i8x8" ;;
+        3) i4x4=",i4x4" ; i8x8=",i8x8" ;;
+        *) ;;
+    esac
+    partitions1=$(echo "x$i4x4$i8x8$p4x4$p8x8$b8x8" | sed -e 's/x,//;')
+    partitions="--partitions $partitions1"
+    [ ! "$partitions1" = "x" ] || partitions="--partitions none"
+    [ ! "$partitions1" = "i4x4,i8x8,p4x4,p8x8,b8x8" ] || partitions="--partitions all"
+fi
+
+
+settings=$(echo " / $settings0" | sed -e 's/=/ /g; s/ \/ / \n--/g; s/_/-/g' | sed -e '
+s/--me-range/--merange/;
+s/--ip-ratio/--ipratio/;
+s/--deblock 1:/--deblock /;
+s/--keyint-min/--min-keyint/;
+s/--cqm 0/--cqm flat/;
+s/--cqm 1/--cqm jvt/;
+s/--nr 0//;
+
+s/--direct 0/--direct none/;
+s/--direct 1/--direct spatial/;
+s/--direct 2/--direct temporal/;
+s/--direct 3/--direct auto/;
+s/--interlaced fake/--fake-interlaced/;
+s/--interlaced bff/--bff/;
+s/--interlaced tff/--tff/;
+
+s/--cabac 1/--cabac/; s/--cabac 0/--no-cabac/;
+s/--8x8dct 1/--8x8dct/; s/--8x8dct 0/--no-8x8dct/;
+
+s/--mbtree 1//; s/--mbtree 0/--no-mbtree/;
+s/--fast-pskip 1//; s/--fast-pskip 0/--no-fast-pskip/;
+s/--chroma-me 1//; s/--chroma-me 0/--no-chroma-me/;
+s/--psy 1//; s/--psy 0/--no-psy/;
+s/--mixed-ref 1//; s/--mixed-ref 0/--no-mixed-ref/;
+s/--decimate 1//; s/--decimate 0/--no-dct-decimate/;
+s/--weightb 1//; s/--weightb 0/--no-weightb/;
+
+s/--intra-refresh 1/--intra-refresh/; s/--intra-refresh 0//;
+s/--constrained-intra 1/--constrained-intra/; s/--constrained-intra 0//;
+s/--open-gop 1/--open-gop/; s/--open-gop 0//;
+s/--bluray-compat 1/--bluray-compat/; s/--bluray-compat 0//;
+s/--sliced-threads 1/--sliced-threads/; s/--sliced-threads 0//;
+
+/--aq /d;
+/--analyse /d;
+/--deadzone /d;
+/--rc /d;
+' | tr -d '\n')
+
+
+if [ "$profile0" = "high10" ] || \
+   [ "$profile0" = "high422" ] || \
+   [ "$profile0" = "high444" ] ; then
+   bit="-10bit"
+fi
+options="$profile $level $output_csp $partitions $settings $deadzone_inter $deadzone_intra $aqmode $aqstrength"
+
+echo ""
+if [ ! -z "$formatprofile" ] ; then
+    echo "Format profile: $formatprofile"
+    echo ""
+fi
+if [ ! -z "$settings0" ] ; then
+    echo "MediaInfo encoding settings:"
+    echo "$settings0"
+    echo ""
+fi
+echo "Converted to x264 cli:"
+echo "x264$bit $options -o output.mp4 <input>" | sed -e 's/    / /g; s/   / /g; s/  / /g; s/-- //g'
+echo ""
+

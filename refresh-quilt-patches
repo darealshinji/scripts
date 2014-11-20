@@ -1,0 +1,3 @@
+#!/bin/sh
+quilt pop -a
+while quilt push; do quilt refresh; done && quilt pop -a
