@@ -1,0 +1,23 @@
+#!/bin/sh
+
+LANG=C
+LANGUAGE=C
+LC_ALL=C
+
+dirname="dependencies_1"
+
+file="${1}"
+test -z "${file}" && exit 1
+
+dependencies=$(\
+LD_LIBRARY_PATH="/usr/lib/i386-linux-gnu/mesa:/usr/lib/x86_64-linux-gnu/mesa:${LD_LIBRARY_PATH}" \
+ldd "${file}" | grep '=>' | cut -d '>' -f2 | cut -d '(' -f1 | tr -d ' ' | tr '\n' ' ' )
+
+
+mkdir -p "${dirname}"
+
+for f in ${dependencies} ; do
+    cp -f "${f}" "${dirname}"
+    echo "copy ${f}"
+done
+
