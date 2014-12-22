@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# adress, i.e.: http://ppa.launchpad.net/djcj/nightingale/ubuntu/pool/main/n/nightingale/nightingale-common_1.13+20141127-1~utopic_all.deb
+adress=${1}
+
+# source package name, i.e.: nightingale
+srcpkg=${2}
+
+# version string
+version=$(basename ${adress} | cut -d '_' -f2)
+
+# Maximum size of the *.debian.tar.* file.
+# If the filesize exceeds, the file won't be downloaded.
+debtarball_maxsize=800000
+
+
+debtarball_info=$(wget -q -O - "$(dirname ${adress})/${srcpkg}_${version}.dsc" | grep ${srcpkg}_${version}.debian.tar. | head -n1)
+test -z "$debtarball_info" && exit 0
+
+debtarball=$(echo $debtarball_info | cut -d' ' -f3)
+debtarball_size=$(echo $debtarball_info | cut -d' ' -f2)
+test $debtarball_size -ge $debtarball_maxsize && exit 0
+
+case $(echo $debtarball | tail -c4) in
+    .xz) compression=J ;;
+    bz2) compression=j ;;
+    .gz) compression=z ;;
+    *)
+esac
+
+cd /tmp && rm -rf debian
+wget -q -O - "$(dirname ${adress})/${debtarball}" | tar xvf${compression} - >/dev/null
+cat debian/changelog && rm -rf debian

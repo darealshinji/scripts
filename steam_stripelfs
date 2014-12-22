@@ -1,0 +1,15 @@
+#!/bin/sh
+
+steamdir="$HOME/.local/share/Steam/"
+
+for f in `find "$steamdir" -type f` ; do
+    if [ -n "`file -b "$f" | grep -e "ELF"`" ] ; then
+        if [ -n "`file -b "$f" | grep -e "unstripped"`" ] ; then
+            echo "strip: "$(echo "$f" | sed -e "s@$steamdir@@")
+            strip --strip-all "$f";
+        else
+            echo "already stripped: "$(echo "$f" | sed -e "s@$steamdir@@")
+        fi
+    fi
+done
+

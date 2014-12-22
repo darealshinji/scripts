@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# deb-src adress, i.e.: http://ppa.launchpad.net/lubuntu-dev/lubuntu-daily/ubuntu
+debsrc=${1}
+
+# distribution codename, i.e.: utopic
+distro=${2}
+
+sources=${debsrc}/dists/${distro}/main/source/Sources
+wget -q -O - $sources
