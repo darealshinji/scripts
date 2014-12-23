@@ -12,6 +12,8 @@ VERSION=${LT}+${LTD}+hg${NODE}
 sed -i "s/set(X265_VERSION \"unknown\")/set(X265_VERSION \"${VERSION}\")/;" source/cmake/version.cmake
 sed -i "s/set(X265_LATEST_TAG \"0.0\")/set(X265_LATEST_TAG \"${LT}\")/;" source/cmake/version.cmake
 sed -i "s/set(X265_TAG_DISTANCE \"0\")/set(X265_TAG_DISTANCE \"${LTD}\")/;" source/cmake/version.cmake
+
+hg log --style changelog > ChangeLog
 rm -rf .hg .hgignore .hgtags
 
 cd ..
