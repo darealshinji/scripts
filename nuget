@@ -1,0 +1,30 @@
+#!/bin/sh
+
+if [ ! "$(which mono)" ]; then
+	echo "'mono' is not in PATH"
+	exit 1
+fi
+
+NuGet="$HOME/.nuget-exe/NuGet.exe"
+
+if [ ! -f "$NuGet" ]; then
+	mkdir -p "$HOME/.nuget-exe"
+
+	printf "Downloading NuGet.exe ... " &&
+	wget -q -O "$NuGet" http://nuget.org/nuget.exe &&
+	printf "done\n"
+
+	# Import and sync trusted root certificates on first run.
+	# On Ubuntu/Debian 'mozroots' is available in the mono-develop package.
+	if [ "$(which mozroots)" ]; then
+		printf "Import and sync trusted root certificates ... " && mozroots --import --sync --quiet && printf "done\n"
+	else
+		echo "'mozroots' is not in PATH. Cannot import and sync trusted root certificates."
+	fi
+
+	# layout
+	echo ""
+fi
+
+mono "$NuGet" "$@"
+

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+wget "http://ftp.netbsd.org/pub/pkgsrc/stable/pkgsrc.tar.gz"
+tar xfv pkgsrc.tar.gz
+
+cd pkgsrc/bootstrap
+SH=/bin/bash ./bootstrap --unprivileged
+./cleanup
+
+"$HOME/pkg/sbin/pkg_admin" -K "$HOME/pkg/var/db/pkg" fetch-pkg-vulnerabilities
+mv pkgsrc "$HOME/pkg"
+
