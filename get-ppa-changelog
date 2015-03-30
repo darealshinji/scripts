@@ -4,7 +4,7 @@
 adress=${1}
 
 # source package name, i.e.: nightingale
-srcpkg=${2}
+srcpkg=$(echo ${adress} | cut -d '/' -f 10)
 
 # version string
 version=$(basename ${adress} | cut -d '_' -f2)
