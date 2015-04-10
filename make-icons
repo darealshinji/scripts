@@ -3,11 +3,11 @@
 # Create an X11 icon set from a single image file.
 # Usage: make-icon.sh <icon> [<output-folder>]
 
-# Last revision : 2014-09-07
+# Last revision : 2015-04-10
 # Requires: librsvg2-bin imagemagick
 
 
-# Copyright (c) 2014, djcj <djcj@gmx.de>
+# Copyright (c) 2014-2015, djcj <djcj@gmx.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,9 @@
 input="$1"
 output1=$(basename "$1")
 output="${output1%.*}"
-tmp="${output1}_tmp.png"
+tmpstring=`tempfile`
+rm $tmpstring
+tmp="$tmpstring-${output1}.png"
 
 if [ -z "$1" ] ; then
     echo "Usage: $0 <icon> [<output-folder>]"
@@ -56,8 +58,12 @@ if [ "${input##*.}" = "svg" ] || [ "${input##*.}" = "SVG" ] ; then
     svgdir="$destdir/icons/hicolor/scalable/apps"
     echo "install SVG"
 
-	# install SVG into hicolor/scalable/apps
+    # install SVG into hicolor/scalable/apps
     install -c -D -m644 "$input" "$svgdir/$output1"
+
+    # compress SVG
+    gzip -f9 "$svgdir/$output1"
+    mv "$svgdir/$output1.gz" "$svgdir/$output.svgz"
 
     # Create temporary input PNG file
     rsvg-convert "$input" -o "$tmp"
