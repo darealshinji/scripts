@@ -1,24 +1,21 @@
 #!/bin/sh
 
-LANG=C
-LANGUAGE=C
-LC_ALL=C
-
-dirname="dependencies_1"
-
 file="${1}"
 test -z "${file}" && \
 echo "usage: ${0} <elf-file>" && exit 0
 
 dependencies=$(\
-LD_LIBRARY_PATH="/usr/lib/i386-linux-gnu/mesa:/usr/lib/x86_64-linux-gnu/mesa:${LD_LIBRARY_PATH}" \
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/lib/i386-linux-gnu/mesa:/usr/lib/x86_64-linux-gnu/mesa" \
 ldd "${file}" | grep '=>' | cut -d '>' -f2 | cut -d '(' -f1 | tr -d ' ' | tr '\n' ' ' )
 
+interpreter=$(readelf -l "${file}" | grep 'interpreter: ' | cut -d ':' -f2 | sed 's/ //; s/]//;')
 
+dirname="dependencies-of-${file}"
 mkdir -p "${dirname}"
 
-for f in ${dependencies} ; do
-    cp -f "${f}" "${dirname}"
+for f in ${dependencies} ${interpreter} ; do
+    destdir="${dirname}/$(dirname "${f}")"
+    mkdir -p "${destdir}"
+    cp -f "${f}" "${destdir}"
     echo "copy ${f}"
 done
-
