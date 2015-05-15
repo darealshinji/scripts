@@ -1,0 +1,50 @@
+#!/bin/bash -e
+
+if [ "x$(type -p dpkg-shlibdeps)" = "x" ] ; then
+   echo "\`dpkg-shlibdeps' not in PATH"
+   exit 1
+fi
+
+# https://github.com/darealshinji/patchelfmod
+if [ "x$(type -p patchelfmod)" = "x" ] ; then
+   echo "\`patchelfmod' not in PATH"
+   exit 1
+fi
+
+if [ "x$1" = "x" ]; then
+   echo "usage: $0 <elf-file>"
+   exit 1
+fi
+
+file="${1}"
+
+if [ "$(dirname "$file")" = "." ]; then
+   file="$PWD/$file"
+fi
+
+if [ "$(file -b "$file" | head -c3)" != "ELF" ]; then
+   echo "error: \"$file\" is not an ELF binary file"
+   exit 1
+fi
+
+tempdir=`mktemp -d --tmpdir="$PWD"`
+
+cd "$tempdir"
+mkdir debian
+touch debian/control
+
+echo "scanning for useless dependencies"
+LANG=C dpkg-shlibdeps "$file" 2>&1 | tee uselessdeps.log > /dev/null
+
+deps="$(grep 'package could avoid a useless dependency' uselessdeps.log | sed 's/.*was not linked against //' | cut -d' ' -f1 | tr '\n' ',')"
+
+if [ "x$deps" = "x" ]; then
+   echo "ELF file \`${file}' does not declare any useless dependencies"
+else
+   patchelfmod --debug --backup --remove-needed $deps "$file" 2>&1 | grep -v -e 'keeping'
+   echo "backup saved as \`${file}~orig'"
+fi
+
+cd ..
+rm -rf "$tempdir"
+
