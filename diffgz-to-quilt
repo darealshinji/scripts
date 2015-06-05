@@ -1,0 +1,19 @@
+#!/bin/sh
+
+diffgz=${1}
+pkg=$(echo $diffgz | cut -d '_' -f1)
+
+mkdir -p $pkg/debian/patches
+cp $diffgz $pkg/debian/patches
+gunzip $pkg/debian/patches/$diffgz
+echo ${diffgz%.gz} > $pkg/debian/patches/series
+
+cd $pkg
+QUILT_PATCHES=debian/patches quilt push -a
+sed -i "/${diffgz%.gz}/d" debian/patches/series
+rm debian/patches/${diffgz%.gz}
+chmod a+x debian/rules
+
+mkdir -p debian/source
+echo "3.0 (quilt)" > debian/source/format
+
