@@ -12,12 +12,16 @@ if [ $? = 0 ] ; then
 	for f in ../*.deb ; do
 		echo "$f:"
 		dpkg-deb -I $f
-		lintian $f
 		echo ""
 	done 2>&1 | tee -a build.log
 	for f in ../*.deb ; do
 		echo "$f:"
 		dpkg-deb -c $f
+		echo ""
+	done 2>&1 | tee -a build.log
+	for f in ../*.deb ; do
+		echo "$f:"
+		lintian $f
 		echo ""
 	done 2>&1 | tee -a build.log
 fi
