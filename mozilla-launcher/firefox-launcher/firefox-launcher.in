@@ -1,8 +1,8 @@
 #!/bin/sh -e
 # No license required for any purpose; this work is not subject to copyright in any jurisdiction.
 
-ffdir="$HOME/.local/share/firefox-browser"
-ffbin="$HOME/.local/share/firefox-browser/firefox/firefox"
+ffdir="$HOME/.local/share/firefox-launcher"
+ffbin="$ffdir/firefox/firefox"
 
 if [ ! -x "$ffbin" ]; then
   url="https://download-installer.cdn.mozilla.net/pub/firefox/releases/latest/linux-@ARCH@"
