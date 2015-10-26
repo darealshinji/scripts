@@ -1,8 +1,8 @@
 #!/bin/sh -e
 # No license required for any purpose; this work is not subject to copyright in any jurisdiction.
 
-tbdir="$HOME/.local/share/thunderbird-browser"
-tbbin="$HOME/.local/share/thunderbird-browser/thunderbird/thunderbird"
+tbdir="$HOME/.local/share/thunderbird-launcher"
+tbbin="$tbdir/thunderbird/thunderbird"
 
 if [ ! -x "$tbbin" ]; then
   url="https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/latest/linux-@ARCH@"
