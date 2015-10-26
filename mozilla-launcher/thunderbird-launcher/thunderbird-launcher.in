@@ -1,0 +1,44 @@
+#!/bin/sh -e
+# No license required for any purpose; this work is not subject to copyright in any jurisdiction.
+
+tbdir="$HOME/.local/share/thunderbird-browser"
+tbbin="$HOME/.local/share/thunderbird-browser/thunderbird/thunderbird"
+
+if [ ! -x "$tbbin" ]; then
+  url="https://download-installer.cdn.mozilla.net/pub/thunderbird/releases/latest/linux-@ARCH@"
+
+  languages="$(wget -q -O - $url/ | grep "href=\"/pub/thunderbird/releases/latest/linux-@ARCH@/" | cut -d '>' -f3 | cut -d '/' -f1)"
+  tblang1="$(echo $LANGUAGE | tr '_' '-')"
+  tblang2="$(echo $tblang1 | cut -d '-' -f1)"
+  if [ "x$(echo "$languages" | grep "$tblang1")" != "x" ]; then
+    tblang="$tblang1"
+  elif [ "x$(echo "$languages" | grep "$tblang2")" != "x" ]; then
+    tblang="$tblang2"
+  else
+    tblang="en-US"
+  fi
+  version="$(wget -q -O - $url/en-US/ | tr '>' '\n' | grep '^thunderbird-' | sed 's|thunderbird-||g; s|\.tar\.bz2<\/a||g' | tail -n1)"
+  echo "version: $version"
+  echo "language: $tblang"
+
+  mkdir -p "$tbdir"
+  cd "$tbdir"
+  rm -rf thunderbird thunderbird.tbz
+
+  wget -O thunderbird.tbz "$url/$tblang/thunderbird-$version.tar.bz2" 2>&1 | \
+  sed -u 's/^[a-zA-Z\-].*//; s/.* \{1,2\}\([0-9]\{1,3\}\)%.*/\1\n#Downloading... \1%/; s/^20[0-9][0-9].*/#Done./' | \
+  zenity --progress \
+         --title="Downloading Thunderbird $version ($tblang)" \
+         --text "Wait a few seconds until the donwload is finished ..." \
+         --auto-close
+
+  tar xfj thunderbird.tbz | \
+  zenity --progress \
+         --pulsate \
+         --title="Extracting files" \
+         --auto-close
+  rm -f thunderbird.tbz
+fi
+
+"$tbbin" $@
+

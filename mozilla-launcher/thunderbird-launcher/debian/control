@@ -1,0 +1,51 @@
+Source: thunderbird-launcher
+Section: mail
+Priority: optional
+Maintainer: Marshall Banana <djcj@gmx.de>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+Homepage: https://www.mozilla.org/thunderbird/
+
+Package: thunderbird-launcher
+Architecture: amd64 i386
+Depends: ${misc:Depends},
+         libasound2 (>= 1.0.16),
+         libatk1.0-0 (>= 1.12.4),
+         libc6 (>= 2.7),
+         libcairo2 (>= 1.2.4),
+         libdbus-1-3 (>= 1.0.2),
+         libdbus-glib-1-2 (>= 0.78),
+         libfontconfig1 (>= 2.9.0),
+         libfreetype6 (>= 2.3.9),
+         libgcc1 (>= 1:4.1.1),
+         libgdk-pixbuf2.0-0 (>= 2.22.0),
+         libglib2.0-0 (>= 2.20.0),
+         libgtk2.0-0 (>= 2.24.0),
+         libpango-1.0-0 (>= 1.14.0),
+         libpangocairo-1.0-0 (>= 1.14.0),
+         libpangoft2-1.0-0 (>= 1.14.0),
+         libstdc++6 (>= 4.1.1),
+         libx11-6,
+         libxcomposite1 (>= 1:0.3-1),
+         libxdamage1 (>= 1:1.1),
+         libxext6,
+         libxfixes3,
+         libxrender1,
+         libxt6,
+         wget,
+         zenity
+Recommends: myspell-en-us | hunspell-dictionary | myspell-dictionary,
+            libcanberra0,
+            libdbusmenu-glib4,
+            libdbusmenu-gtk4
+Suggests: ttf-lyx
+Provides: mail-reader
+Description: Email, RSS and newsgroup client with integrated spam filter
+ Thunderbird is a full-featured email, RSS and newsgroup client that makes
+ emailing safer, faster and easier than ever before. It supports different mail
+ accounts (POP, IMAP, Gmail), has a simple mail account setup wizard, one-
+ click address book, tabbed interface, an integrated learning spam filter,
+ advanced search and indexing capabilities, and offers easy organization
+ of mails with tagging and virtual folders. It also features unrivalled
+ extensibility.
+

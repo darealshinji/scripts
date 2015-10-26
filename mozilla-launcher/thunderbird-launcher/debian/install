@@ -1,0 +1,3 @@
+debian/thunderbird-launcher.desktop   /usr/share/applications
+thunderbird-launcher   /usr/bin
+icons   /usr/share

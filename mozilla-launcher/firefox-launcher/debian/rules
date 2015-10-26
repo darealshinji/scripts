@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq ($(DEB_HOST_ARCH), amd64)
+FFARCH=x86_64
+else
+FFARCH=i686
+endif
+
+
+%:
+	dh ${@}
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f firefox-launcher
+
+override_dh_auto_build:
+	sed -e 's|@ARCH@|$(FFARCH)|g' firefox-launcher.in > firefox-launcher
+	chmod a+x firefox-launcher
+
+override_dh_compress:
+	dh_compress -XMPL-2.0
+

@@ -1,0 +1,3 @@
+debian/firefox-launcher.desktop   /usr/share/applications
+firefox-launcher   /usr/bin
+icons   /usr/share
