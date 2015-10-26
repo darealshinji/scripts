@@ -1,0 +1,37 @@
+# single binary package
+
+pkgver=0.8
+pkgrev=~makepkg1
+source="patchelf"
+section="utils"
+copyright="2004-2015 Eelco Dolstra <eelco.dolstra@logicblox.com>"
+license="GPL-3+"
+maintainer="Marshall Banana <djcj@gmx.de>"
+builddepends="libacl1-dev libattr1-dev"
+homepage="http://nixos.org/patchelf.html"
+packages=( "${source}" )
+suggests=( "binutils, execstack" )
+pkgdesc="modify properties of ELF binaries"
+pkgdesc_long="Simple utility for modifing existing ELF executables and libraries.
+It can change the dynamic loader (\"ELF interpreter\") of executables, modify \
+DT_SONAME entries of shared libraries and manipulate the RPATH and DT_NEEDED entries of executables and libraries."
+
+srcfile="${source}_${pkgver}.tar.gz"
+srcdir="${basedir}/${source}-${pkgver}"
+srcurl="https://github.com/NixOS/patchelf"
+
+prepare() {
+  git clone --depth 1 "${srcurl}" ${source}-${pkgver}
+}
+
+build() {
+  autoreconf -if
+  _configure
+  _make
+  make -j1 check
+}
+
+package() {
+  _make_install
+}
+

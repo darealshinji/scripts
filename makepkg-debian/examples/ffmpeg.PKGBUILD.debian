@@ -1,0 +1,224 @@
+source=ffmpeg
+section=video
+maintainer="Marshall Banana <djcj@gmx.de>"
+builddepends_gpl="
+ libcdio-dev
+ libcdio-cdda-dev
+ libcdio-paranoia-dev
+ libx11-xcb-dev
+ libx264-dev
+ libx265-dev
+ libxvidcore-dev"
+builddepends_gplv3="
+ libopencore-amrnb-dev
+ libopencore-amrwb-dev
+ libvo-aacenc-dev
+ libvo-amrwbenc-dev"
+builddepends_nonfree="
+ libfdk-aac-dev"
+builddepends="
+ chrpath
+ doxygen
+ texinfo
+ yasm
+ libbz2-dev
+ liblzma-dev
+ zlib1g-dev
+ libasound2-dev
+ libopenal-dev
+ libpulse-dev
+ libsdl1.2-dev
+ frei0r-plugins-dev
+ libass-dev
+ libbluray-dev
+ libdc1394-22-dev
+ libraw1394-dev
+ libfreetype6-dev
+ libgnutls-dev
+ libgsm1-dev
+ libmp3lame-dev
+ libopenh264-dev
+ libopus-dev
+ librtmp-dev
+ libschroedinger-dev
+ libsoxr-dev
+ libspeex-dev
+ libtheora-dev
+ libva-dev
+ libvdpau-dev
+ libvorbis-dev
+ libvpx-dev
+ libwavpack-dev
+ libwebp-dev
+ ${builddepends_gpl}
+ ${builddepends_gplv3}
+ ${builddepends_nonfree}"
+homepage="http://www.ffmpeg.org/"
+pkgver=2.8.1
+pkgrev=-0makepkg1
+epoch=7:
+pkgdesc="Tools for transcoding, streaming and playing of multimedia files"
+pkgdesc_long="FFmpeg is the leading multimedia framework, able to decode, encode, \
+transcode, mux, demux, stream, filter and play pretty much anything that humans and \
+machines have created. It supports the most obscure ancient formats up to the cutting edge."
+copyright="2015 FFmpeg project"
+license="GPL-3+/non-free"
+changelog=Changelog
+docs="CREDITS MAINTAINERS RELEASE_NOTES"
+debugpkg="ffmpeg-dbg"
+debugging=( "ffmpeg" )
+packages=( "ffmpeg" )
+depends=( "libjs-jquery" )
+suggests=( "frei0r-plugins" )
+provides=( "ffmpeg-doc" )
+
+srcdir="${basedir}/${source}-${pkgver}"
+srcfile="ffmpeg-${pkgver}.tar.bz2"
+srcurl="http://ffmpeg.org/releases/${srcfile}"
+md5sum="63b2cfeea930e942ff7579fd0064c5be"
+
+cleanfiles="tools/qt-faststart"
+
+prepare() {
+  _download "${srcurl}" "${srcfile}" "${md5sum}"
+  tar xvf "${srcfile}"
+}
+
+build() {
+  # set all relevant hardening flags with --toolchain=hardened
+  CFLAGS="" CPPFLAGS="" \
+  LDFLAGS="-Wl,-z,noexecstack -Wl,-rpath,XXXXXXXXXXXXXXXXXXXXXXXXX" \
+  ./configure --prefix=/usr \
+	--libdir=/usr/lib/ffmpeg \
+	--shlibdir=/usr/lib/ffmpeg \
+	--enable-shared \
+	--disable-static \
+	--disable-stripping \
+	--toolchain=hardened \
+	--enable-avresample \
+	--enable-pthreads \
+	--enable-runtime-cpudetect \
+	--enable-avisynth \
+	--enable-libass \
+	--enable-libbluray \
+	--enable-libdc1394 \
+	--enable-libfreetype \
+	--enable-frei0r \
+	--enable-gnutls \
+	--enable-libgsm \
+	--enable-libmp3lame \
+	--enable-openal \
+	--enable-libopenh264 \
+	--enable-libopus \
+	--enable-libpulse \
+	--enable-librtmp \
+	--enable-libschroedinger \
+	--enable-libsoxr \
+	--enable-libspeex \
+	--enable-libtheora \
+	--enable-vaapi \
+	--enable-vdpau \
+	--enable-libvorbis \
+	--enable-libvpx \
+	--enable-libwavpack \
+	--enable-libwebp \
+	--enable-gpl \
+	--enable-postproc \
+	--enable-libcdio \
+	--enable-libxcb \
+	--enable-libx264 \
+	--enable-libx265 \
+	--enable-libxvid \
+	--enable-version3 \
+	--enable-libopencore-amrnb \
+	--enable-libopencore-amrwb \
+	--enable-libvo-aacenc \
+	--enable-libvo-amrwbenc \
+	--enable-nonfree \
+	--enable-libfdk-aac || (cat config.log && exit 1)
+  _make
+  _make apidoc
+  _make tools/qt-faststart
+  chrpath -d tools/qt-faststart
+}
+
+package() {
+  _make_install
+  install -D -m755 tools/qt-faststart "${srcdir}"/debian_tmp/usr/bin/qt-faststart.ffmpeg
+
+  # set the placeholder runpath to '$ORIGIN'
+  for f in "${srcdir}"/debian_tmp/usr/lib/ffmpeg/*.so.* ; do \
+    chrpath -r '$ORIGIN' $f ;\
+  done
+  # set the placeholder runpath to '$ORIGIN/../lib/ffmpeg'
+  for f in "${srcdir}"/debian_tmp/usr/bin/ff* ; do \
+    chrpath -r '$ORIGIN/../lib/ffmpeg' $f ;\
+  done
+
+  ffmpeg_doc=/usr/share/doc/ffmpeg/
+
+  cat <<EOF> debian/ffmpeg.install
+usr/bin
+usr/lib/ffmpeg/*.so.*
+usr/share
+doc/ffserver.conf           /etc
+doc/doxy/html/*             ${ffmpeg_doc}api
+doc/examples/*.c            ${ffmpeg_doc}examples
+doc/examples/Makefile       ${ffmpeg_doc}examples
+doc/examples/README         ${ffmpeg_doc}examples
+doc/examples/pc-uninstalled ${ffmpeg_doc}examples
+doc/*.html                  ${ffmpeg_doc}manual
+doc/*.css                   ${ffmpeg_doc}manual
+doc/APIchanges              ${ffmpeg_doc}developer-info
+doc/*.txt                   ${ffmpeg_doc}developer-info
+EOF
+
+  echo '/usr/share/javascript/jquery/jquery.min.js /usr/share/doc/ffmpeg-doc/api/jquery.js' > debian/ffmpeg.links
+
+  cat <<EOF> debian/ffmpeg.lintian-overrides
+ffmpeg: embedded-library usr/lib/ffmpeg/*: lib*
+ffmpeg: manpage-has-errors-from-man usr/share/man/man1/ff* can't break line
+ffmpeg: postinst-has-useless-call-to-ldconfig
+ffmpeg: postrm-has-useless-call-to-ldconfig
+EOF
+if [ "${DEB_HOST_ARCH}" = "i386" ]; then
+  echo 'ffmpeg: shlib-with-non-pic-code /usr/lib/ffmpeg/*' >> debian/ffmpeg.lintian-overrides
+fi
+
+  cat <<EOF> debian/ffmpeg.doc-base
+Document: ffmpeg-doc-makepkg
+Title: FFmpeg API Documentation
+Author: FFmpeg Developers
+Abstract: This is the API documentation for FFmpeg.
+Section: Programming
+
+Format: HTML
+Index: ${ffmpeg_doc}api/index.html
+Files: ${ffmpeg_doc}api/*.html
+EOF
+
+  cat <<EOF> "${srcdir}"/debian_tmp/usr/share/man/man1/qt-faststart.ffmpeg.1
+.TH QT-FASTSTART 1 "May 10, 2009"
+.SH NAME
+qt-faststart \- utility for Quicktime files
+.SH SYNOPSIS
+.B qt-faststart
+.br
+.SH DESCRIPTION
+\fBqt-faststart\fP is a utility that rearranges a Quicktime file such that the
+moov atom is in front of the data, thus facilitating network streaming.
+.SH OPTIONS
+Options processed by the executable:
+.TP
+\fB\<infile.mov>\fR
+The source Quicktime file.
+.TP
+\fB\<outfile.mov>\fR
+The destination Quicktime file.
+.SH AUTHOR
+This manual page was written by Andres Mejia <mcitadel@gmail.com>
+for the Debian GNU/Linux system, but may be used by others.
+EOF
+
+}
+

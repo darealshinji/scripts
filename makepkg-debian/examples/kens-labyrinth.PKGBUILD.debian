@@ -1,0 +1,327 @@
+pkgver=3.0
+pkgrev=~makepkg1
+source="kens-labyrinth"
+section="non-free/games"
+copyright="1992-1993 Ken Silverman <kens@advsys.net>
+2013-2015 Jan Lönnberg <lonnberg@mbnet.fi>
+2013-2015 Jared Stafford <jspenguin@jspenguin.org>"
+license="KEN'S LABYRINTH SOURCE CODE LICENSE TERMS"
+maintainer="Marshall Banana <djcj@gmx.de>"
+builddepends="libsdl2-dev libsdl2-image-dev libgl1-mesa-dev libglu1-mesa-dev zlib1g-dev"
+homepage="http://www.advsys.net/ken/klab.htm"
+packages=( "${source}" )
+pkgdesc="first Wolf3D clone"
+pkgdesc_long="LAB3D/SDL is a port of Ken's Labyrinth to modern operating systems, using \
+OpenGL for graphics output and the SDL library to provide user input, sound \
+output, threading, and some graphics support functions."
+
+srcdir="${basedir}/${source}-${pkgver}"
+srcurl="http://s3.jspenguin.org/LAB3D-SDL-3.0-src.tar.gz"
+giturl="https://github.com/jspenguin/lab3d-sdl.git"
+
+changelog="CHANGELOG"
+docs="*.txt LAB3D-SDL-3.0/hints.txt LAB3D-SDL-3.0/helpme.doc"
+cleanfiles="LAB3D-SDL-3.0 scripts ken.bin lab3d"
+
+prepare() {
+  git clone --depth 1 "${giturl}" "${srcdir}"
+  _download "${srcurl}" "${srcdir}/lab3d.tar.gz" "578cb1e4c2a58eaab8b0f7e15c5c3e5d"
+
+  latestcommit=`git -C "${srcdir}" log -1 --format=%ci | head -c10 | sed -e 's/-//g'`
+  pkgrev="+git${latestcommit}${pkgrev}"
+}
+
+build() {
+  _make
+  mv ken.bin lab3d
+  mkdir -p scripts
+  convert ken.bmp scripts/lab3d.xpm
+  tar xvf lab3d.tar.gz
+}
+
+package() {
+  cat <<EOF> debian/install
+scripts/lab3d          /usr/games
+scripts/lab3d.xpm      /usr/share/pixmaps
+scripts/lab3d.desktop  /usr/share/applications
+scripts/lab3d.6        /usr/share/man/man6
+scripts/settings.ini   /usr/share/games/lab3d
+lab3d                  /usr/lib
+LAB3D-SDL-3.0/hires    /usr/share/games/lab3d
+LAB3D-SDL-3.0/*.kzp    /usr/share/games/lab3d
+LAB3D-SDL-3.0/*.dat    /usr/share/games/lab3d
+LAB3D-SDL-3.0/*.bmp    /usr/share/games/lab3d
+LAB3D-SDL-3.0/*.ini    /usr/share/games/lab3d
+EOF
+
+  cat <<EOF> scripts/lab3d
+#!/bin/sh
+datdir=/usr/share/games/lab3d
+confdir="\$HOME/.config/lab3d"
+if [ ! -d "\$confdir" ]; then
+  mkdir -p "\$confdir"
+  for f in "\$datdir"/* ; do
+    ln -fs "\$f" "\$confdir/\$(basename \$f)"
+  done
+  rm -f "\$confdir"/savgame* "\$confdir/settings.ini"
+  cp -f "\$datdir"/savgame* "\$datdir/settings.ini" "\$confdir"
+fi
+cd "\$confdir" && "/usr/lib/lab3d" "\$@"
+EOF
+  chmod a+x scripts/lab3d
+
+  cat <<EOF> scripts/lab3d.desktop
+[Desktop Entry]
+Name=Ken's Labyrinth
+Exec=lab3d
+TryExec=/usr/games/lab3d
+Type=Application
+Categories=Game;
+StartupNotify=true
+Icon=lab3d
+EOF
+
+  cat <<EOF>> debian/copyright
+
+
+
+KEN'S LABYRINTH SOURCE CODE LICENSE TERMS:                        07/01/2001
+
+[1] I give you permission to make modifications to my Ken's Labyrinth source
+    and distribute it, BUT:
+
+[2] Any derivative works based on my Ken's Labyrinth source may be
+    distributed ONLY through the INTERNET and free of charge - no
+    commercial exploitation whatsoever.
+
+[3] Anything you distribute which uses a part of my Ken's Labyrinth source
+    code MUST include the following message somewhere in the archive:
+
+    "Ken's Labyrinth" Copyright (c) 1992-1993 Ken Silverman
+    Ken Silverman's official web site: "http://www.advsys.net/ken"
+
+    Including this README.TXT file along with your distribution is the
+    recommended way of satisfying this requirement.
+
+[4] Technical support: The code is so old that I am NOT interested in wasting
+    my time answering questions about it. If you can't figure out how to
+    compile the code, or you can't figure out what the code is doing,
+    then that's your problem.
+EOF
+
+  cat <<EOF> scripts/lab3d.6
+.TH LAB3D "6" "April 2015" "3.0" "Games Manual"
+.SH NAME
+LAB3D/SDL \- first Wolf3D clone
+.SH SYNOPSIS
+\fBlab3d\fR [options]
+.SH DESCRIPTION
+LAB3D/SDL is a port of Ken's Labyrinth to modern operating systems, using
+OpenGL for graphics output and the SDL library to provide user input, sound
+output, threading, and some graphics support functions.
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-help\fR
+Print this help.
+.TP
+\fB\-V\fR, \fB\-version\fR
+Print version.
+.TP
+\fB\-res\fR <w> <h> <virtual w> <virtual h>
+Set screen resolution.  Default: 800 600 360 240
+.TP
+\fB\-asp\fR <aspw> <asph>
+Aspect ratio correction.  Default: 1.0 1.0
+.TP
+\fB\-win\fR
+Start in window mode.
+.TP
+\fB\-fullscreen\fR
+Start in fullscreen mode.
+.TP
+\fB\-nearest\fR
+Use nearest neighbor texture resize filter.
+.TP
+\fB\-trilinear\fR
+Use trilinear texture resize filter.
+.TP
+\fB\-stereo\fR
+Enable stereoscopic view.
+.TP
+\fB\-gmmusic\fR
+Use General MIDI for music.
+.TP
+\fB\-admusic\fR
+Use Adlib emulation for music.
+.TP
+\fB\-nomusic\fR
+Don't play music.
+.TP
+\fB\-sound\fR
+Enable sound.
+.TP
+\fB\-nosound\fR
+Disable sound.
+.TP
+\fB\-skip\fR
+Skip intro sequence and start a new game right away.
+.TP
+\fB\-load\fR <slot>
+Load a saved game from one of the 8 available slots.
+.TP
+\fB\-record\fR <slot> <dem>
+Load a game (slot 1\-8) and record a demo.
+If <slot> is set to 0 a new game will be started.
+.TP
+\fB\-recordx\fR <slot> <dem>
+Same as \fB\-record\fR but saves an uncompressed demo file.
+.TP
+\fB\-play\fR <dem>
+Play a demo file.
+.TP
+\fB\-setup\fR
+Start in settings menu.
+.TP
+\fB\-v\fR, \fB\-debug\fR
+Verbose output.
+EOF
+
+  cat <<EOF> scripts/settings.ini
+[Video]
+fullscreen = 0
+width = 800
+height = 600
+filtering = 0
+scaling = 2
+brightness = 1.000000
+texturedepth = 1
+
+[Sound]
+enable = 1
+volume = 64
+stereo = 1
+buffer = 0
+
+[Music]
+enable = 1
+volume = 64
+stereo = 1
+
+[Input]
+inputdevice = 2
+cheatkeymode = 0
+
+[Keyboard]
+forward = "W"
+backward = "S"
+left = "Left"
+right = "Right"
+moveleft = "A"
+moveright = "D"
+strafe = "Right Ctrl"
+standhigh = "Right Ctrl"
+standlow = "Left Ctrl"
+run = "Left Shift"
+fire = "Space"
+nextweapon = "Q"
+fireballs = "1"
+bouncy = "2"
+heat = "3"
+use = "E"
+cheat = "Backspace"
+status = "Return"
+pause = "P"
+mute = "M"
+menu = "Escape"
+menu_up1 = "Up"
+menu_up2 = "Keypad 8"
+menu_down1 = "Down"
+menu_down2 = "Keypad 2"
+menu_left1 = "Left"
+menu_left2 = "Keypad 2"
+menu_right1 = "Right"
+menu_right2 = "Keypad 6"
+menu_select1 = "Return"
+menu_select2 = "Keypad Enter"
+menu_select3 = "Space"
+menu_cancel = "Escape"
+rewind = "R"
+advance = "N"
+
+[Joystick]
+forward = "A-1"
+backward = "A+1"
+left = "A-2"
+right = "A+2"
+moveleft = "A-0"
+moveright = "A+0"
+strafe = ""
+standhigh = ""
+standlow = ""
+run = "6"
+fire = "5"
+nextweapon = "3"
+fireballs = ""
+bouncy = ""
+heat = ""
+use = "7"
+cheat = ""
+status = ""
+pause = "8"
+mute = ""
+menu = "9"
+menu_up1 = "A-1"
+menu_up2 = ""
+menu_down1 = "A+1"
+menu_down2 = ""
+menu_left1 = "A-0"
+menu_left2 = ""
+menu_right1 = "A+0"
+menu_right2 = ""
+menu_select1 = "0"
+menu_select2 = ""
+menu_select3 = ""
+menu_cancel = "1"
+rewind = ""
+advance = ""
+
+[Controller]
+forward = "A-LEFTY"
+backward = "A+LEFTY"
+left = "A-RIGHTX"
+right = "A+RIGHTX"
+moveleft = "A-LEFTX"
+moveright = "A+LEFTX"
+strafe = ""
+standhigh = ""
+standlow = ""
+run = ""
+fire = "A+RIGHTTRIGGER"
+nextweapon = "X"
+fireballs = ""
+bouncy = ""
+heat = ""
+use = "A"
+cheat = ""
+status = "Y"
+pause = ""
+mute = ""
+menu = "START"
+menu_up1 = "DPUP"
+menu_up2 = "A-LEFTY"
+menu_down1 = "DPDOWN"
+menu_down2 = "A+LEFTY"
+menu_left1 = "DPLEFT"
+menu_left2 = "A-LEFTX"
+menu_right1 = "DPRIGHT"
+menu_right2 = "A+LEFTX"
+menu_select1 = "A"
+menu_select2 = "A+RIGHTTRIGGER"
+menu_select3 = ""
+menu_cancel = "B"
+rewind = "LEFTSHOULDER"
+advance = "RIGHTSHOULDER"
+EOF
+
+}
+

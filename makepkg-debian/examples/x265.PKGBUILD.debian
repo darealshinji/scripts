@@ -1,0 +1,136 @@
+# typical split package
+
+source="x265"
+section="video"
+# Maintainer must always be "first_name last_name email".
+# Use something like "John Doe <fake_maintainer@debian.org>" if you don't
+# want to use your real name/email.
+maintainer="Marshall Banana <djcj@gmx.de>"
+builddepends="cmake libnuma-dev python-sphinx yasm"  # not an array!
+homepage="https://bitbucket.org/multicoreware/x265/wiki/Home"
+
+pkgver=1.8
+pkgrev=-0makepkg1
+epoch=
+#epoch=1:
+
+pkgdesc="H.265/HEVC video stream encoder"
+pkgdesc_long="x265 is a commandline encoder for creating H.265/High Efficency Video Coding (HEVC) video streams.
+
+x265 is free to use under the GNU GPL and is also available under a commercial license."
+
+# make sure the copyright notice includes at least a year and a name
+# Hint: you can append text or replace debian/copyright with commands
+# specified in the packaging() function
+copyright="2013-2015 x265 project"
+license="GPL-2+"
+
+# upstream changelog
+changelog=
+
+# extra documentation
+docs=
+
+api=68
+pkg=$source
+
+debugpkg="lib${pkg}-${api}-dbg"
+# the packages on which the debug package will depend
+debugging=( "lib${pkg}-${api}" )
+
+packages=( "${pkg}"
+           "lib${pkg}-${api}"
+           "lib${pkg}-dev"
+           "lib${pkg}-doc" )
+
+# packaging infos will be added in the order of the
+# packages listed in the ${packages} array:
+# field=( "package1"
+#         "package2"
+#         "package3" )
+
+sections=( 0
+           "libs"
+           "libdevel"
+           "doc" )
+
+depends=( "\${sphinxdoc:Depends}"
+          0
+          "lib${pkg}-${api} (= \${binary:Version})"
+          "\${sphinxdoc:Depends}" )
+
+recommends=( 0 0 0 0 )
+
+suggests=( "lib${pkg}-doc"
+           0
+           "${pkg}, lib${pkg}-doc"
+           0 )
+
+provides=( 0 0 0 0 )
+replaces=( 0 0 0 0 )
+breaks=( 0 0 0 0 )
+
+# 0 equals "any". If no "architectures" array is provided, all
+# packages will be set to architecture "any".
+architectures=( "any"
+                0
+				0
+				"all" )
+
+srcfile="${source}_${pkgver}.tar.gz"
+# $srcdir is required by makepkg
+srcdir="${basedir}/${source}-${pkgver}"
+# $srcurl will be listed in debian/copyright
+srcurl="https://bitbucket.org/multicoreware/${source}/downloads/${srcfile}"
+md5sum="8b7ef9bc0b5bd26965d05a4508effeed"
+
+# you can add additional library search paths for dh_shlibdeps, separated
+# by ':', by setting the environment variable SHLIBDEPS_LIBRARY_PATH
+export SHLIBDEPS_LIBRARY_PATH="/usr/lib/x265:/usr/lib/${DEB_HOST_MULTIARCH}/x265"
+
+# additional files or directories that should be deleted with clean()
+cleanfiles="doc/reST/build"
+
+# Prepare the sources (download, extract, patch, etc.).
+# The function '_download' will check if the required file is already present,
+# download it via wget if necessary and check its MD5 hash.
+# The usage is '_download <URL> <TARGET-FILENAME> <MD5-CHECKSUM>'.
+prepare() {
+  _download "${srcurl}" "${srcfile}" "${md5sum}"
+  tar xvf "${srcfile}"
+
+  mv x265_11047 "${source}-${pkgver}"
+}
+
+# Configure and build everything.
+# There's no need to cd into the source tree.
+# The functions '_cmake', '_qmake', '_qmake-qt4', '_configure' and '_make'
+# automatically provide all the typical Debian configurations and buildflags.
+# You can also use dpkg-architecture variables like '${DEB_HOST_MULTIARCH}'.
+# _cmake always requires a source directory, i.e. '_cmake ./src/'.
+# Use a command like 'echo' or 'true' if there's nothing to build or configure.
+build() {
+  _cmake source
+  _make
+  make -C doc/reST pickle html man
+}
+
+# '_make_install' will install everything into '<SRC>/debian_tmp'
+# for multiple binary packages and into '<SRC>/debian/<PKGNAME>'
+# for a single binary package. This directory will later be used
+# by dh_install as the source directory.
+package() {
+  _make_install
+
+  echo "usr/bin" > debian/${pkg}.install
+  echo "doc/reST/build/man/*" > debian/${pkg}.manpages
+  echo "usr/lib/*/*.so.*" > debian/lib${pkg}-${api}.install
+  echo "doc/reST/build/html" > debian/lib${pkg}-doc.docs
+  cat <<EOF> debian/lib${pkg}-dev.install
+usr/include
+usr/lib/*/*.so
+usr/lib/*/*.a
+usr/lib/*/pkgconfig
+EOF
+}
+

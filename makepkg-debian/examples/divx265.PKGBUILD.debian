@@ -1,0 +1,37 @@
+# package a pre-built 32-bit binary
+
+pkgver=1.5.0.8
+source="divx265"
+section="video"
+packages=( "${source}" )
+srcdir="${basedir}/${source}-${pkgver}"
+architectures=( "amd64 i386" )
+maintainer="Marshall Banana <djcj@gmx.de>"
+if [ "${DEB_HOST_ARCH}" = "amd64" ]; then
+  builddepends="lib32gcc1 libc6-i386 lib32stdc++6"
+fi
+suggests=( "mkvtoolnix" )
+copyright="2000-2015 DivX, LLC."
+license="proprietary/freeware"
+homepage="http://labs.divx.com/divx265"
+pkgdesc="DivX HEVC Community Encoder"
+pkgdesc_long="This tool will allow you to encode HEVC streams that are within DivX HEVC profile.
+After encoding, you can mux video using MKVToolnix."
+
+prepare() {
+  mkdir -p "${srcdir}"
+  _download "http://download.divx.com/hevc/DivX265_1_5_8" "${srcdir}/DivX265" "3cb04e8cf69ad7d63e5001c882f2b4a3"
+  wget -O "${srcdir}/DivX265.1" "https://raw.githubusercontent.com/darealshinji/hybrid-debian/non-free/divx265/DivX265.1"
+}
+
+build() {
+  true
+}
+
+package() {
+  install -D -m755 DivX265   "${srcdir}/${installsrc}/usr/bin/DivX265"
+  install -D -m644 DivX265.1 "${srcdir}/${installsrc}/usr/share/man/man1/DivX265.1"
+  ln -s DivX265      "${srcdir}/${installsrc}/usr/bin/divx265"
+  ln -s DivX265.1.gz "${srcdir}/${installsrc}/usr/share/man/man1/divx265.1.gz"
+}
+
