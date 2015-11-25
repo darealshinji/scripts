@@ -70,10 +70,7 @@ cd "\$(dirname "\$0")"
 
 cat <<EOL
 export PATH="\$PWD/bin:\\\$PATH"
-export CFLAGS="-I\$PWD/include \\\$CFLAGS"
-export CXXFLAGS="-I\$PWD/include \\\$CXXFLAGS"
-export CPPFLAGS="-I\$PWD/include \\\$CPPFLAGS"
-export LDFLAGS="-L\$PWD/lib64 -L\$PWD/lib32 -Wl,--gc-sections -static-libgcc -static-libstdc++ \\\$LDFLAGS"
+export LDFLAGS="-static-libgcc -static-libstdc++ \\\$LDFLAGS"
 EOL
 EOF
 chmod a+x $gcc_dir/env.sh
