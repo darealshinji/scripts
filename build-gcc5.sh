@@ -6,7 +6,7 @@ set -v
 gcc_ver=5.2.0
 gcc_dir=gcc-$gcc_ver
 gcc_pkg=${gcc_dir}.tar.bz2
-gcc_url="http://ftp.mpi-sb.mpg.de/pub/gnu/mirror/gcc.gnu.org/pub/gcc/releases/gcc-$gcc_ver/$gcc_pkg"
+gcc_url="http://ftp.gnu.org/gnu/gcc/gcc-$gcc_ver/$gcc_pkg"
 
 mpfr_dir=mpfr-3.1.3
 mpc_dir=mpc-1.0.3
@@ -36,11 +36,11 @@ wget $gmp_url
 tar xf $gmp_pkg
 mv $gmp_dir gmp
 
-export CFLAGS="-O3 -fstack-protector -ffunction-sections -fdata-sections"
-export CXXFLAGS="-O3 -fstack-protector -ffunction-sections -fdata-sections"
+export CFLAGS="-g -O2 -fstack-protector -ffunction-sections -fdata-sections"
+export CXXFLAGS="-g -O2 -fstack-protector -ffunction-sections -fdata-sections"
 export LDFLAGS="-Wl,-z,relro -Wl,--gc-sections"
 
-./configure --prefix="$HOME/$gcc_dir"
+./configure --prefix="$HOME/$gcc_dir" --with-pic=yes
 make -j4
 make install
 
@@ -55,16 +55,16 @@ strip $gcc_dir/lib*/lib*.so.* 2>/dev/null
 strip $gcc_dir/libexec/gcc/*-linux-gnu/$gcc_ver/* 2>/dev/null
 strip $gcc_dir/libexec/gcc/*-linux-gnu/$gcc_ver/*/* 2>/dev/null
 
-strip --strip-debug $gcc_dir/lib*/lib*.a 2>/dev/null
-strip --strip-debug $gcc_dir/lib/gcc/*-linux-gnu/$gcc_ver/lib*.a 2>/dev/null
-strip --strip-debug $gcc_dir/lib/gcc/*-linux-gnu/$gcc_ver/*/lib*.a 2>/dev/null
+#strip --strip-debug $gcc_dir/lib*/lib*.a 2>/dev/null
+#strip --strip-debug $gcc_dir/lib/gcc/*-linux-gnu/$gcc_ver/lib*.a 2>/dev/null
+#strip --strip-debug $gcc_dir/lib/gcc/*-linux-gnu/$gcc_ver/*/lib*.a 2>/dev/null
 
 find $gcc_dir/share/info -type f -exec gzip -f9 '{}' \;
 find $gcc_dir/share/man -type f -exec gzip -f9 '{}' \;
 
 
 cat <<EOF> $gcc_dir/env.sh
-#!/usr/bin/env bash
+#!/bin/sh
 
 cd "\$(dirname "\$0")"
 
