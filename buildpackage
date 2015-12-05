@@ -6,22 +6,25 @@ LC_ALL=C
 
 dpkg-buildpackage -b -us -uc 2>&1 | tee build.log
 
-ls ../*.deb &> /dev/null
+packages="$(find .. -maxdepth 1 -type f -name *.deb)"
 
-if [ $? = 0 ] ; then
-	for f in ../*.deb ; do
+if [ -n "$packages" ]; then
+	for f in $packages ; do
 		echo "$f:"
 		dpkg-deb -I $f
 		echo ""
 	done 2>&1 | tee -a build.log
-	for f in ../*.deb ; do
+	for f in $packages ; do
 		echo "$f:"
 		dpkg-deb -c $f
 		echo ""
 	done 2>&1 | tee -a build.log
-	for f in ../*.deb ; do
-		echo "$f:"
-		lintian $f
-		echo ""
-	done 2>&1 | tee -a build.log
+	if [ -x /usr/bin/lintian ]; then
+		for f in $packages ; do
+			echo "$f:"
+			lintian $f
+			echo ""
+		done 2>&1 | tee -a build.log
+	fi
 fi
+
