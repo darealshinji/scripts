@@ -11,7 +11,7 @@ for f in *.deb ; do
   echo ""
 done
 for f in *.deb ; do
-  echo "$f:"
+  echo "Lintian tags for $f:"
   lintian $f
   echo ""
 done
