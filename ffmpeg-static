@@ -1,0 +1,72 @@
+#!/bin/sh
+
+set -e
+
+# git build-essential autoconf automake pkg-config yasm
+# libx265-dev libx11-dev zlib1g-dev libtheora-dev libvorbis-dev libvpx-dev libva-dev
+# libfreetype6-dev libvdpau-dev libxvidcore-dev libxml2-dev liblzma-dev
+
+
+export CFLAGS="-O2 -fstack-protector --param=ssp-buffer-size=4 -D_FORTIFY_SOURCE=2"
+export CXXFLAGS="$CFLAGS"
+export LDFLAGS="-Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,noexecstack -Wl,--as-needed"
+prefix="$PWD/ffmpeg-source/libs"
+MAKE="make V=1"
+
+
+echo "--- downloading sources..."
+apt-get source alsa-lib libbluray
+git clone --depth 1 git://git.videolan.org/x264.git x264-source
+git clone --depth 1 git://git.code.sf.net/p/opencore-amr/fdk-aac fdk-aac-source
+git clone --depth 1 git://source.ffmpeg.org/ffmpeg.git ffmpeg-source
+
+
+echo "--- build alsa static library..."
+cd alsa-lib-*
+autoreconf -ivf
+./configure --prefix="$prefix" --enable-static --disable-shared
+$MAKE
+make install
+
+
+echo "--- build bluray static library..."
+cd ../libbluray-*
+./bootstrap
+./configure --prefix="$prefix" --enable-static --disable-shared
+$MAKE
+make install
+
+
+echo "--- build fdk-aac static library..."
+cd ../fdk-aac-source
+./autogen.sh
+./configure --prefix="$prefix" --enable-static --disable-shared
+$MAKE
+make install
+
+
+echo "--- build x264 static library..."
+cd ../x264-source
+./configure --prefix="$prefix" --bit-depth=8 --chroma-format=all --disable-cli --enable-static --enable-strip \
+			--disable-opencl --disable-avs --disable-swscale --disable-lavf --disable-ffms --disable-gpac --disable-lsmash
+$MAKE
+make install
+
+
+echo "--- build ffmpeg"
+cd ../ffmpeg-source
+./configure --disable-debug --disable-ffplay --disable-ffprobe --disable-ffserver --disable-doc \
+			--enable-runtime-cpudetect --enable-x11grab --enable-gpl --enable-nonfree \
+			--enable-libx264 --enable-libx265 --enable-libxvid --enable-libfdk-aac \
+			--enable-libtheora --enable-libvorbis --enable-libvpx \
+			--extra-cflags="-I./libs/include" --extra-ldflags="-L./libs/lib -static" \
+			--extra-libs="-lbluray -lxml2 -llzma -lz -lpthread -lm -ldl  -lfreetype -lpng" \
+			--pkg-config-flags="--static"
+# bluray detection seems to be broken, so let's force it
+sed -i 's/!CONFIG_LIBBLURAY=yes/CONFIG_LIBBLURAY=yes/; s/!CONFIG_BLURAY_PROTOCOL=yes/CONFIG_BLURAY_PROTOCOL=yes/' config.mak
+sed -i 's/define CONFIG_LIBBLURAY 0/define CONFIG_LIBBLURAY 1/; s/define CONFIG_BLURAY_PROTOCOL 0/define CONFIG_BLURAY_PROTOCOL 1/' config.h
+$MAKE
+cp ffmpeg ..
+strip ../ffmpeg
+echo "--- ffmpeg successfully built"
+
