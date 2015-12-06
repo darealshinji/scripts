@@ -1,0 +1,5 @@
+#!/bin/sh
+cd "$(dirname "$(readlink -f "$0")")"
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PWD}/bin"
+export AEGISUB_DATA="${PWD}"
+./bin/aegisub "$@"

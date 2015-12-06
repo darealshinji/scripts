@@ -1,0 +1,14 @@
+Build dependencies:
+
+build-essential wget yasm autoconf automake intltool ragel quilt hunspell-en-us
+
+libasound2-dev libpulse-dev
+libgtk2.0-dev libgl1-mesa-dev libglu1-mesa-dev
+
+libicu-dev libfftw3-dev
+
+libboost-dev libboost-chrono-dev libboost-filesystem-dev libboost-locale-dev libboost-regex-dev libboost-system-dev libboost-thread-dev
+
+
+
+build-essential wget yasm autoconf automake intltool ragel quilt hunspell-en-us libasound2-dev libpulse-dev libgtk2.0-dev libgl1-mesa-dev libglu1-mesa-dev libicu-dev libfftw3-dev libboost-dev libboost-chrono-dev libboost-filesystem-dev libboost-locale-dev libboost-regex-dev libboost-system-dev libboost-thread-dev
