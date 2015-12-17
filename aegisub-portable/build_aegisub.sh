@@ -6,7 +6,7 @@ curdir="$PWD"
 commonflags="-Wall -Wextra -Wno-unused-parameter -Wno-unused-local-typedefs -O3 -fstack-protector-all -fno-strict-aliasing -ffunction-sections -fdata-sections -D_FORTIFY_SOURCE=2"
 
 export CFLAGS="$commonflags -std=gnu99"
-export CXXFLAGS="$commonflags -fno-strict-aliasing -std=c++11"
+export CXXFLAGS="$commonflags -std=c++11"
 
 export LDFLAGS="-s -Wl,-z,relro -Wl,-z,defs -Wl,--as-needed -Wl,--gc-sections  -pthread -static-libstdc++"
 export LIBS="-lpthread -ldl -lm"
