@@ -1,11 +1,14 @@
 #!/bin/sh
 
+autogen () {
+  # autogen command(s)
+  mkdir -p build-aux
+  autoreconf -i -f
+}
 cleanscript="autogen-cleanup.sh"
-autogencmd="autoreconf -i -f"
-
 
 find . > .autogen_sh_before
-$autogencmd
+autogen
 find . > .autogen_sh_after
 diff -u .autogen_sh_before .autogen_sh_after | grep '^+\./' | sed 's|^+||g' | \
 	grep -v '^\.\/git\/' | \
