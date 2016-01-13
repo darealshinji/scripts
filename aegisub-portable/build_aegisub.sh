@@ -6,9 +6,9 @@ curdir="$PWD"
 commonflags="-Wall -Wextra -Wno-unused-parameter -Wno-unused-local-typedefs -O3 -fstack-protector-all -fno-strict-aliasing -ffunction-sections -fdata-sections -D_FORTIFY_SOURCE=2"
 
 export CFLAGS="$commonflags -std=gnu99"
-export CXXFLAGS="$commonflags -std=c++11"
+export CXXFLAGS="$commonflags -std=c++11 -DLINUX_PORTABLE_BUILD"
 
-export LDFLAGS="-s -Wl,-z,relro -Wl,-z,defs -Wl,--as-needed -Wl,--gc-sections  -pthread -static-libstdc++"
+export LDFLAGS="-s -Wl,-z,relro -Wl,-z,defs -Wl,--as-needed -Wl,--gc-sections  -pthread -static-libgcc -static-libstdc++"
 export LIBS="-lpthread -ldl -lm"
 
 export ICU_UC_LIBS="-Wl,-Bstatic $(pkg-config --libs icu-uc) -Wl,-Bdynamic -ldl"
@@ -26,7 +26,6 @@ sed -i 's/$(LIBS_ICU)$/$(LIBS_ICU) -pthread -lpthread/' tools/Makefile
 sed -i 's/ -fPIC//' libaegisub/Makefile
 sed -i 's/with_openal="no"/with_openal="yes"/' configure.ac
 patch < ../portable.patch libaegisub/unix/path.cpp
-patch < ../fix-boost-defines.patch src/video_out_gl.cpp
 
 autoreconf -ivf
 ./configure --disable-compiler-flags --disable-rpath --with-wx-prefix="$curdir/libs"

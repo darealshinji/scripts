@@ -3,7 +3,7 @@
 curdir="$PWD"
 
 CFLAGS="-Wall -O3 -fstack-protector-all -fno-strict-aliasing -ffunction-sections -fdata-sections -D_FORTIFY_SOURCE=2"
-LDFLAGS="-s -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,noexecstack -Wl,-z,defs -Wl,--as-needed -Wl,--gc-sections"
+LDFLAGS="-s -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,noexecstack -Wl,-z,defs -Wl,--as-needed -Wl,--gc-sections -static-libgcc"
 
 rm -rf openal-soft
 git clone --depth 1 "git://repo.or.cz/openal-soft.git"
