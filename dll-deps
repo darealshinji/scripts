@@ -1,0 +1,27 @@
+#!/bin/sh
+
+export LC_ALL=C
+
+case "x${1}" in
+   x|x-h|x-help|x--help|x-?)
+     echo "Usage: ${0} <exe|dll>"
+     exit 0
+   ;;
+esac
+
+if [ ! -e "${1}" ]; then
+   echo "ERROR: cannot open \`${1}' (No such file or directory)"
+   exit 1
+fi
+
+if [ ! -f "${1}" ]; then
+   echo "ERROR: \`${1}' is not a file"
+   exit 1
+fi
+
+if [ "$(file -b "${1}" | head -c4)" != "PE32" ]; then
+   echo "ERROR: \`${1}' is not a PE32 binary file"
+   exit 1
+fi
+
+objdump -x "${1}" 2>/dev/null | sed -nr 's|.*DLL Name: (.*).*|\1|p'
