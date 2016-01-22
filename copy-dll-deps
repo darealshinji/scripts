@@ -64,9 +64,12 @@ function get_depends_exe() {
 input="$1"
 outdir="$2"
 
-test -e "$input" || errorExit "cannot open \`$input' (No such file or directory)"
-
-test which depends 2>/dev/null 1>/dev/null || get_depends_exe
+if [ ! -e "$input" ]; then
+	errorExit "cannot open \`$input' (No such file or directory)"
+fi
+if ! which depends 2>/dev/null 1>/dev/null ; then
+	get_depends_exe
+fi
 
 if [ -d "$1" ]; then
 	if [ "x$outdir" = "x" ]; then
