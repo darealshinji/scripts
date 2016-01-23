@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
-# intended to be used on Cygwin or Msys2
+if [ "$(uname -o)" = "GNU/Linux" ]; then
+	depends_dir="$HOME/.local/share/depends_exe"
+	depends_exe="wine $depends_dir/depends.exe"
+else
+	depends_dir="/usr/local/bin"
+	depends_exe="depends"
+fi
 
 function errorExit() {
 	echo ""
@@ -12,20 +18,27 @@ function copy_dlls() {
 	file="${1}"
 	outdir="${2}"
 	txt="deps-$(basename ${file}).txt"
-	cygpath="$(cygpath -d / | sed -r 's|.|\L&|; s|\\|\\\\|g')"
-	file_lower="$(basename ${file} | tr [A-Z] [a-z])"
 
-	printf "analyzing \`$file'... "
-	depends -c -oc:"$txt" "$file"
-	dlls="$(grep "$cygpath" "$txt" | cut -d, -f2 | tr [A-Z] [a-z] | \
-		sed -e 's|\\|/|g; s|"||g' | grep -v "${file_lower}$")"
-	echo "done"
+	if [ "$(uname -o)" = "GNU/Linux" ]; then
+		wine "$depends_dir/depends.exe" -c -oc:"$txt" "$file" 2>/dev/null
+		echo "warning: automatic copying of dependencies not (yet) possible on GNU/Linux"
+		echo ""
+		grep '^,.*\.DLL' "$txt" | cut -d '"' -f2 | tr [A-Z] [a-z]
+	else
+		printf "analyzing \`$file'... "
+		depends -c -oc:"$txt" "$file"
+		cygpath="$(cygpath -d / | sed -r 's|.|\L&|; s|\\|\\\\|g')"
+		file_lower="$(basename ${file} | tr [A-Z] [a-z])"
+		dlls="$(grep "$cygpath" "$txt" | cut -d, -f2 | tr [A-Z] [a-z] | \
+			sed -e 's|\\|/|g; s|"||g' | grep -v "${file_lower}$")"
+		echo "done"
 
-	mkdir -p "$outdir"
-	echo "copy dependencies:"
-	for f in $dlls; do
-		cp -vf "$f" "$outdir"
-	done
+		mkdir -p "$outdir"
+		echo "copy dependencies:"
+		for f in $dlls; do
+			cp -vf "$f" "$outdir"
+		done
+	fi
 	rm -f "$txt"
 }
 
@@ -49,8 +62,8 @@ function get_depends_exe() {
 		errorExit "incorrect checksum"
 
 	if which unzip 2>/dev/null 1>/dev/null ; then
-		mkdir -p /usr/local/bin
-		pushd /usr/local/bin >/dev/null
+		mkdir -p "$depends_dir"
+		pushd "$depends_dir" >/dev/null
 		unzip -o -qq $zip
 		popd >/dev/null
 	else
@@ -67,8 +80,18 @@ outdir="$2"
 if [ ! -e "$input" ]; then
 	errorExit "cannot open \`$input' (No such file or directory)"
 fi
-if ! which depends 2>/dev/null 1>/dev/null ; then
-	get_depends_exe
+
+if [ "$(uname -o)" = "GNU/Linux" ]; then
+	if ! which wine 2>/dev/null 1>/dev/null ; then
+		errorExit "\`wine' not in PATH"
+	fi
+	if [ ! -f "$depends_dir/depends.exe" ]; then
+		get_depends_exe
+	fi
+else
+	if ! which depends 2>/dev/null 1>/dev/null ; then
+		get_depends_exe
+	fi
 fi
 
 if [ -d "$1" ]; then
