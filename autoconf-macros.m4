@@ -21,10 +21,14 @@
 # SOFTWARE.
 
 # usage: AX_CHECK_PKG_LIB(prefix, pkg-module, library, headers)
-_AX_CHECK_PKG_LIB_lang="C++"
 m4_define([AX_CHECK_PKG_LIB], [{
-    AC_LANG_PUSH([$_AX_CHECK_PKG_LIB_lang])
-    PKG_CHECK_MODULES([$1], [$2], [], [
+    eval $( echo $1 )_lib_avail="no"
+    eval $( echo $1 )_headers_avail="no"
+    AC_LANG_PUSH([C++])
+    PKG_CHECK_MODULES([$1], [$2], [
+        eval $( echo $1 )_lib_avail="yes"
+        eval $( echo $1 )_headers_avail="yes"
+    ], [
         # library check
         LIBS_backup="$LIBS"
         LIBS="-l$3"
@@ -33,16 +37,19 @@ m4_define([AX_CHECK_PKG_LIB], [{
             AC_LANG_SOURCE(
                 [[int main() { return 0; }]]
             )
-        ], [AC_MSG_RESULT([found])],
-           [AC_MSG_ERROR([$3 not found])]
+        ], [AC_MSG_RESULT([yes])
+            eval $( echo $1 )_lib_avail="yes"
+        ], [AC_MSG_RESULT([no])]
         )
-        LIBS="$LIBS_backup -l$3"
+        LIBS="$LIBS_backup"
         # header checks
         AS_IF([test "x$4" != "x"], [
-            AC_CHECK_HEADERS([$4], [], [exit 1])
+            AC_CHECK_HEADERS([$4], [
+                eval $( echo $1 )_headers_avail="yes"
+            ])
         ])
     ])
-    AC_LANG_POP([$_AX_CHECK_PKG_LIB_lang])
+    AC_LANG_POP([C++])
 }])
 
 # usage: AX_CHECK_CXXFLAGS(flags)
