@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# Copyright (c) 2015, djcj <djcj@gmx.de>
+# Copyright (c) 2015-2016, djcj <djcj@gmx.de>
+#
+# helper script to install Steam into the user directory, including menu entries
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +27,7 @@ bsdir="$HOME/.local/share/steam-bootstrap"
 local_apps="$HOME/.local/share/applications"
 local_icons="$HOME/.local/share/icons/hicolor"
 desktop_path="$(xdg-user-dir DESKTOP)"
+orig="$(cd `dirname "$0"` && pwd)/$(basename "$0")"
 
 # check if zenity is present
 zenity --version 2>/dev/null >/dev/null
@@ -39,7 +42,7 @@ if [ ! -x "$bsdir/steam/steam" ]; then
   rm -rf "$bsdir"
   mkdir -p "$bsdir"
   cd "$bsdir"
-  cp "$0" bootstrap.sh
+  cp "$orig" bootstrap.sh
   
   # check if we can run 32 bit programs
   cat <<_BASE64 | base64 -d | bunzip2 > test32bit
@@ -132,7 +135,7 @@ EOF
 
 zenity --version 2>/dev/null >/dev/null
 if [ \$? != 0 ]; then
-  echo "\$0 requires zenity to be installed on your system!"
+  echo "This script requires zenity to be installed on your system!"
   exit 1
 fi
 
