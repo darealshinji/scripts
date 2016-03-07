@@ -21,8 +21,10 @@ cp -r /usr/share/hunspell $dir/dictionaries
 
 cp $prefix/share/icons/hicolor/64x64/apps/aegisub.png $dir/icon.png
 
-git clone --depth 1 https://github.com/darealshinji/MojoSetup-Bins.git
-cd MojoSetup-Bins
+version="0.0.885"
+wget "https://github.com/darealshinji/MojoSetup-Bins/releases/download/v${version}/MojoSetup-Bins-${version}-linux.tar.xz"
+tar xf MojoSetup-Bins-${version}-linux.tar.xz
+cd MojoSetup-Bins-${version}
 
 export FULLNAME=Aegisub
 export SHORTNAME=Aegisub

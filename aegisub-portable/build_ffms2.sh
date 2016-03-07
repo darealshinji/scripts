@@ -8,7 +8,9 @@ cd ffms2
 git clone --depth 1 "git://source.ffmpeg.org/ffmpeg.git"
 cd ffmpeg
 CFLAGS="-fstack-protector-all -fno-strict-aliasing -ffunction-sections -fdata-sections -D_FORTIFY_SOURCE=2" \
-./configure --prefix="$curdir/libs" --disable-programs --disable-doc --disable-bzlib --disable-lzma --disable-debug
+./configure --prefix="$curdir/libs" --disable-asm --disable-debug \
+  --disable-programs --disable-doc --disable-bzlib --disable-lzma \
+  --disable-encoders --disable-hwaccels --disable-muxers
 sed -i 's/-O3/-O2/g' config.mak
 make -j4
 make install
