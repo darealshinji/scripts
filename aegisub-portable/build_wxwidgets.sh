@@ -3,7 +3,7 @@
 version="3.0.2"
 curdir="$PWD"
 
-export CFLAGS="-O2 -fstack-protector -fno-strict-aliasing -D_FORTIFY_SOURCE=2"
+export CFLAGS="-O2 -fstack-protector-all -fno-strict-aliasing -ffunction-sections -fdata-sections -D_FORTIFY_SOURCE=2"
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-s -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,noexecstack -Wl,--as-needed -static-libstdc++"
 
