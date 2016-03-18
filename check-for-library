@@ -1,0 +1,54 @@
+#!/bin/sh
+
+# Written by djcj <djcj@gmx.de> and released into the Public Domain.
+# No license required for any purpose; the work is not subject to copyright in any jurisdiction.
+
+showhelp() {
+  echo "usage: [CC=gcc] $0 [-m32|-m64] <library>"
+  exit 0
+}
+
+if test "x$1" = "x" ; then
+  showhelp
+elif test "x$1" = "x-m32" ; then
+  arch="-m32"
+  bits=" (32 bits)"
+  lib="$2"
+elif test "x$1" = "x-m64" ; then
+  arch="-m64"
+  bits=" (64 bits)"
+  lib="$2"
+else
+  lib="$1"
+fi
+if test "x$lib" = "x" ; then
+  showhelp
+fi
+
+if test "x$CC" = "x" ; then
+  cc="gcc"
+else
+  cc="$CC"
+fi
+
+test_bin="$(tempfile)"
+test_so="$(tempfile -s .so)"
+test_c="$(tempfile -s .c)"
+
+echo "int main(){return 0;}" > $test_c
+$cc $arch -O0 -shared -Wl,-soname,$lib $test_c -o $test_so
+$cc $arch -O0 -Wl,--no-as-needed $test_c -o $test_bin $test_so
+
+$test_bin 2>/dev/null
+if test $? -eq 0 ; then
+  result="found"
+  exitcode=0
+else
+  result="NOT found"
+  exitcode=1
+fi
+
+rm -f $test_c $test_bin $test_so
+echo "$lib$bits $result"
+exit $exitcode
+
