@@ -145,48 +145,41 @@ for i do
   if test $decomp -eq 0; then
     (cat <<'EOF' &&
 #!/bin/sh
-skip=44
-
+skip=37
 tab='	'
 nl='
 '
 IFS=" $tab$nl"
-
 umask=`umask`
 umask 77
-
 xztmpdir=
 trap 'res=$?
-  test -n "$xztmpdir" && rm -fr "$xztmpdir"
-  (exit $res); exit $res
+test -n "$xztmpdir"&&rm -fr "$xztmpdir"
+(exit $res);exit $res
 ' 0 1 2 3 5 10 13 15
-
-if type mktemp >/dev/null 2>&1; then
-  xztmpdir=`mktemp -dt`
+if type mktemp>/dev/null 2>&1;then
+xztmpdir=`mktemp -dt`
 else
-  xztmpdir=/tmp/xztmp$$; mkdir $xztmpdir
-fi || { (exit 127); exit 127; }
-
+xztmpdir=/tmp/xztmp$$
+mkdir $xztmpdir
+fi||{(exit 127);exit 127;}
 xztmp=$xztmpdir/$0
 case $0 in
 -* | */*'
-') mkdir -p "$xztmp" && rm -r "$xztmp";;
-*/*) xztmp=$xztmpdir/`basename "$0"`;;
-esac || { (exit 127); exit 127; }
-
+')mkdir -p "$xztmp" && rm -r "$xztmp";;*/*)xztmp=$xztmpdir/`basename "$0"`;;esac||{(exit 127);exit 127;}
 case `echo X | tail -n +1 2>/dev/null` in
-X) tail_n=-n;;
-*) tail_n=;;
-esac
-if tail $tail_n +$skip <"$0" | xz -cd > "$xztmp"; then
-  umask $umask
-  chmod 700 "$xztmp"
-  (sleep 5; rm -fr "$xztmpdir") 2>/dev/null &
-  "$xztmp" ${1+"$@"}; res=$?
+X)tail_n=-n;;*)tail_n=;;esac
+if tail $tail_n +$skip <"$0" | xz -cd > "$xztmp";then
+umask $umask
+chmod 700 "$xztmp"
+(sleep 5;rm -fr "$xztmpdir")2>/dev/null &
+"$xztmp" ${1+"$@"}
+res=$?
 else
-  echo >&2 "Cannot decompress $0"
-  (exit 127); res=127
-fi; exit $res
+echo>&2 "Cannot decompress $0"
+(exit 127); res=127
+fi
+exit $res
 EOF
     xz -cv9 "$file") > "$tmp" || {
       res=$?
