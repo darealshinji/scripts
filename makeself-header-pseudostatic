@@ -1,0 +1,154 @@
+cat << EOF  > "$archname"
+#!/bin/sh
+# generated using Makeself $MS_VERSION
+# makeself-header 2.2.0 modified to generate pseudo-static single binaries
+
+umask 077
+
+CRCsum="$CRCsum"
+MD5="$MD5sum"
+TMPROOT=\${TMPDIR:=/tmp}
+
+script="$SCRIPT"
+scriptargs="$SCRIPTARGS"
+filesizes="$filesizes"
+
+print_cmd_arg=""
+if type printf > /dev/null; then
+	print_cmd="printf"
+elif test -x /usr/ucb/echo; then
+	print_cmd="/usr/ucb/echo"
+else
+	print_cmd="echo"
+fi
+
+MS_Printf()
+{
+	\$print_cmd \$print_cmd_arg "\$1"
+}
+
+MS_diskspace()
+{
+	(
+	if test -d /usr/xpg4/bin; then
+		PATH=/usr/xpg4/bin:\$PATH
+	fi
+	df -kP "\$1" | tail -1 | awk '{ if (\$4 ~ /%/) {print \$3} else {print \$4} }'
+	)
+}
+
+MS_dd()
+{
+	blocks=\`expr \$3 / 1024\`
+	bytes=\`expr \$3 % 1024\`
+	dd if="\$1" ibs=\$2 skip=1 obs=1024 conv=sync 2> /dev/null | \\
+	{ test \$blocks -gt 0 && dd ibs=1024 obs=1024 count=\$blocks ; \\
+	  test \$bytes  -gt 0 && dd ibs=1 obs=1024 count=\$bytes ; } 2> /dev/null
+}
+
+MS_dd_Progress()
+{
+	MS_dd \$@
+	return \$?
+}
+
+MS_Check()
+{
+	OLD_PATH="\$PATH"
+	PATH=\${GUESS_MD5_PATH:-"\$OLD_PATH:/bin:/usr/bin:/sbin:/usr/local/ssl/bin:/usr/local/bin:/opt/openssl/bin"}
+	MD5_ARG=""
+	MD5_PATH=\`exec <&- 2>&-; which md5sum || type md5sum\`
+	test -x "\$MD5_PATH" || MD5_PATH=\`exec <&- 2>&-; which md5 || type md5\`
+	test -x "\$MD5_PATH" || MD5_PATH=\`exec <&- 2>&-; which digest || type digest\`
+	PATH="\$OLD_PATH"
+	offset=\`head -n $SKIP "\$1" | wc -c | tr -d " "\`
+	verb=\$2
+	i=1
+	for s in \$filesizes
+	do
+		crc=\`echo \$CRCsum | cut -d" " -f\$i\`
+		if test -x "\$MD5_PATH"; then
+			if test \`basename \$MD5_PATH\` = digest; then
+				MD5_ARG="-a md5"
+			fi
+			md5=\`echo \$MD5 | cut -d" " -f\$i\`
+			if test \$md5 = "00000000000000000000000000000000"; then
+				test x\$verb = xy && echo " \$1 does not contain an embedded MD5 checksum." >&2
+			else
+				md5sum=\`MS_dd "\$1" \$offset \$s | eval "\$MD5_PATH \$MD5_ARG" | cut -b-32\`;
+				if test "\$md5sum" != "\$md5"; then
+					echo "Error in MD5 checksums: \$md5sum is different from \$md5" >&2
+					exit 2
+				else
+					test x\$verb = xy && MS_Printf " MD5 checksums are OK." >&2
+				fi
+				crc="0000000000"; verb=n
+			fi
+		fi
+		if test \$crc = "0000000000"; then
+			test x\$verb = xy && echo " \$1 does not contain a CRC checksum." >&2
+		else
+			sum1=\`MS_dd "\$1" \$offset \$s | CMD_ENV=xpg4 cksum | awk '{print \$1}'\`
+			if test "\$sum1" = "\$crc"; then
+				test x\$verb = xy && MS_Printf " CRC checksums are OK." >&2
+			else
+				echo "Error in checksums: \$sum1 is different from \$crc" >&2
+				exit 2;
+			fi
+		fi
+		i=\`expr \$i + 1\`
+		offset=\`expr \$offset + \$s\`
+	done
+}
+
+UnTAR()
+{
+	tar \$1f - 2>&1 || { echo Extraction failed. > /dev/tty; kill -15 \$$; }
+}
+
+tmpdir="\$TMPROOT/selfgz\$\$\$RANDOM"
+mkdir -p \$tmpdir || {
+	echo 'Cannot create target directory' \$tmpdir >&2
+	echo 'You should try option --target dir' >&2
+	eval true
+	exit 1
+}
+
+if test x\$SETUP_NOCHECK != x1; then
+	MS_Check "\$0"
+fi
+offset=\`head -n $SKIP "\$0" | wc -c | tr -d " "\`
+
+trap 'echo Signal caught, cleaning up >&2; cd \$TMPROOT; rm -rf \$tmpdir; eval true; exit 15' 1 2 3 15
+
+leftspace=\`MS_diskspace \$tmpdir\`
+if test -n "\$leftspace"; then
+	if test "\$leftspace" -lt $USIZE; then
+		echo
+		echo "Not enough space left in "\`dirname \$tmpdir\`" (\$leftspace KB) to decompress \$0 ($USIZE KB)" >&2
+		echo "Consider setting TMPDIR to a directory with more free space."
+		eval true; exit 1
+	fi
+fi
+
+for s in \$filesizes
+do
+	if MS_dd_Progress "\$0" \$offset \$s | eval "$GUNZIP_CMD" | ( cd "\$tmpdir"; UnTAR x ) 1>/dev/null; then
+		(PATH=/usr/xpg4/bin:\$PATH; cd "\$tmpdir"; chown -R \`id -u\` .;  chgrp -R \`id -g\` .)
+	else
+		echo >&2
+		echo "Unable to decompress \$0" >&2
+		eval true; exit 1
+	fi
+	offset=\`expr \$offset + \$s\`
+done
+
+cd "\$tmpdir"
+res=0
+if test x"\$script" != x; then
+	eval \$script \$scriptargs \$*; res=\$?
+fi
+cd \$TMPROOT
+rm -rf \$tmpdir
+eval true; exit \$res
+EOF
