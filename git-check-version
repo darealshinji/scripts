@@ -1,0 +1,11 @@
+#!/bin/sh
+# Check version on Git for Windows
+# Install script into "C:\Program Files\Git\usr\bin"
+
+cat <<EOL
+
+Installed: `git --version`
+Available: `curl -s https://api.github.com/repos/git-for-windows/git/releases | grep '"tag_name":' | head -n1 | cut -d'"' -f4`
+
+Downloads at https://github.com/git-for-windows/git/releases
+EOL
