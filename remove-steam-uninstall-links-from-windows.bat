@@ -1,3 +1,5 @@
+@echo off
+
 REM http://furgelnod.com/2014/removing-steam-games-from-programs-and-features-windows/
 
 @title Remove Steam Uninstall Links From Windows
@@ -6,8 +8,10 @@ REM http://furgelnod.com/2014/removing-steam-games-from-programs-and-features-wi
     @for /F "delims=" %%a in ('reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall ^| findstr /C:"Steam App"') do @reg delete "%%a" /f
     @for /F "delims=" %%a in ('reg query HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall ^| findstr /C:"Steam App"') do @reg delete "%%a" /f
     @echo Success!
-    @pause>nul
+    @echo.
+    @pause
 ) else (
     @echo You do not have Administrator Priveleges. Try right clicking and choosing 'run as administrator '
-    @pause>nul
+    @echo.
+    @pause
 )
