@@ -8,6 +8,8 @@ autogen () {
 # force the deletion of these files and/or directories
 #forcedelete="some-file1.ext some-file2.ext some/directory/"
 
+#-----------------------------------------------#
+
 cleanscript="autogen-cleanup.sh"
 
 if [ -f $cleanscript ]; then
