@@ -1,0 +1,34 @@
+#!/bin/sh
+
+export LANG=C
+
+file="$1"
+
+if [ "x$file" = "x" ]; then
+  echo "usage: $0 <ELF binary>"
+  echo
+  exit 1
+fi
+
+if ! readelf --version 2>&1 >/dev/null; then
+  echo "\`readelf' not in PATH!"
+  echo "Are you missing the GNU binutils?"
+  exit 1
+fi
+
+if readelf -l "$file" 2>&1 | grep -q 'Not an ELF file'; then
+  echo "error: \`$file' is not an ELF file"
+  exit 1
+else
+  if readelf -l "$file" 2>/dev/null | grep -q 'GNU_RELRO'; then
+    if readelf -d "$file" 2>/dev/null | grep -q 'BIND_NOW'; then
+      echo "full RELRO (BIND_NOW)"
+    else
+      echo "partial RELRO (GNU_RELRO)"
+    fi
+  else
+    echo "no RELRO"
+  fi
+fi
+
+exit 0
