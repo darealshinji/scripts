@@ -3,11 +3,11 @@
 # Create an X11 icon set from a single image file.
 # Usage: make-icon.sh <icon> [<output-folder>]
 
-# Last revision : 2015-04-10
+# Last revision : 2016-08-27
 # Requires: librsvg2-bin imagemagick
 
 
-# Copyright (c) 2014-2015, djcj <djcj@gmx.de>
+# Copyright (c) 2014-2016, djcj <djcj@gmx.de>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+
+create_xpm="no"
+#create_xpm="yes"
 
 input="$1"
 output1=$(basename "$1")
@@ -72,10 +75,12 @@ fi
 
 
 ## Create XPM
-pixmaps="$destdir/pixmaps"
-mkdir -p "$pixmaps"
-echo "create pixmap"
-convert "$input" -filter Lanczos -resize 32x32 "$pixmaps/$output.xpm"
+if [ "$create_xpm" = "yes" ]; then
+    pixmaps="$destdir/pixmaps"
+    mkdir -p "$pixmaps"
+    echo "create pixmap"
+    convert "$input" -filter Lanczos -resize 32x32 "$pixmaps/$output.xpm"
+fi
 
 
 ## Create PNGs
