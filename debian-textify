@@ -1,0 +1,797 @@
+#!/bin/sh
+
+# Merge Debian packaging files to single diff-like text files
+# and vice-versa. Handles binary files and symbolic links too.
+
+# The MIT License (MIT)
+#
+# Copyright (C) 2016, djcj <djcj@gmx.de>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Last modified: 2016-09-03
+
+
+usage () {
+  cat <<EOL
+
+usage:
+  $0 cat > OUT
+  $0 uncat FILE
+  $0 licenses
+
+EOL
+  exit 1
+}
+
+# You can replace DEP5 license paragraphs in debian/copyright
+# with the macros defined in the heredoc below.
+# The macros will later be resolved when restoring the packaging
+# files with "uncat".
+license_macros () {
+  mv debian/copyright debian/copyright.m4in
+  cat <<EOL | cat - debian/copyright.m4in | m4 > debian/copyright
+dnl
+dnl Macros to replace license paragraphs within DEP5 debian/copyright files
+dnl Usage: cat licenses.m4 copyright.m4in | m4 > copyright
+dnl
+dnl
+changequote([,])dnl
+dnl
+dnl
+dnl GPL-2+
+dnl
+define([LIC_GPL2_PLUS], [License: GPL-2+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in \`/usr/share/common-licenses/GPL-2'.])dnl
+dnl
+dnl
+dnl GPL-2
+dnl
+define([LIC_GPL2], [License: GPL-2
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in \`/usr/share/common-licenses/GPL-2'.])dnl
+dnl
+dnl
+dnl GPL-3+
+dnl
+define([LIC_GPL3_PLUS], [License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in \`/usr/share/common-licenses/GPL-3'.])dnl
+dnl
+dnl
+dnl GPL-3
+dnl
+define([LIC_GPL3], [License: GPL-3
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 3 as
+ published by the Free Software Foundation.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in \`/usr/share/common-licenses/GPL-3'.])dnl
+dnl
+dnl
+dnl LGPL-2.0+
+dnl
+define([LIC_LGPL20_PLUS], [License: LGPL-2.0+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Library General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-2'.])dnl
+dnl
+dnl
+dnl LGPL-2.0
+dnl
+define([LIC_LGPL20], [License: LGPL-2.0
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2.0 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+ .
+ You should have received a copy of the GNU Library General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Library General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-2'.])dnl
+dnl
+dnl
+dnl LGPL-2.1+
+dnl
+define([LIC_LGPL21_PLUS], [License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-2.1'.])dnl
+dnl
+dnl
+dnl LGPL-2.1
+dnl
+define([LIC_LGPL21], [License: LGPL-2.1
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License version 2.1 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-2.1'.])dnl
+dnl
+dnl
+dnl LGPL-3.0+
+dnl
+define([LIC_LGPL30_PLUS], [License: LGPL-3.0+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 3.0 of the License, or (at your option) any later version.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-3.0'.])dnl
+dnl
+dnl
+dnl LGPL-3.0
+dnl
+define([LIC_LGPL30], [License: LGPL-3.0
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License version 3.0 as published by the Free Software Foundation.
+ .
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU Lesser General
+ Public License can be found in \`/usr/share/common-licenses/LGPL-3.0'.])dnl
+dnl
+dnl
+dnl Apache License 1.0
+dnl
+define([LIC_APACHE10], [License: Apache-1.0
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer. 
+ .
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+ .
+ 3. All advertising materials mentioning features or use of this
+    software must display the following acknowledgment:
+    "This product includes software developed by the Apache Group
+    for use in the Apache HTTP server project (http://www.apache.org/)."
+ .
+ 4. The names "Apache Server" and "Apache Group" must not be used to
+    endorse or promote products derived from this software without
+    prior written permission. For written permission, please contact
+    apache@apache.org.
+ .
+ 5. Products derived from this software may not be called "Apache"
+    nor may "Apache" appear in their names without prior written
+    permission of the Apache Group.
+ .
+ 6. Redistributions of any form whatsoever must retain the following
+    acknowledgment:
+    "This product includes software developed by the Apache Group
+    for use in the Apache HTTP server project (http://www.apache.org/)."
+ .
+ THIS SOFTWARE IS PROVIDED BY THE APACHE GROUP ``AS IS'' AND ANY
+ EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE APACHE GROUP OR
+ ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ OF THE POSSIBILITY OF SUCH DAMAGE.])dnl
+dnl
+dnl
+dnl Apache License 1.1
+dnl
+define([LIC_APACHE11], [License: Apache-1.1
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ .
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+ .
+ 3. The end-user documentation included with the redistribution,
+    if any, must include the following acknowledgment:
+       "This product includes software developed by the
+        Apache Software Foundation (http://www.apache.org/)."
+    Alternately, this acknowledgment may appear in the software itself,
+    if and wherever such third-party acknowledgments normally appear.
+ .
+ 4. The names "Apache" and "Apache Software Foundation" must
+    not be used to endorse or promote products derived from this
+    software without prior written permission. For written
+    permission, please contact apache@apache.org.
+ .
+ 5. Products derived from this software may not be called "Apache",
+    nor may "Apache" appear in their name, without prior written
+    permission of the Apache Software Foundation.
+ .
+ THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+ WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED.  IN NO EVENT SHALL THE APACHE SOFTWARE FOUNDATION OR
+ ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+ USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.])dnl
+dnl
+dnl
+dnl Apache License 2.0
+dnl
+define([LIC_APACHE20], [License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+   http://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.])dnl
+dnl
+dnl
+dnl Mozilla Public License 1.1
+dnl
+define([LIC_MPL11], [License: MPL-1.1
+ The contents of this file are subject to the Mozilla Public License
+ Version 1.1 (the "License"); you may not use this file except in
+ compliance with the License.
+ You may obtain a copy of the License at http://www.mozilla.org/MPL/
+ .
+ Software distributed under the License is distributed on an "AS IS"
+ basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ See the License for the specific language governing rights and
+ limitations under the License.])dnl
+dnl
+dnl
+dnl BSD-2-Clause
+dnl
+define([LIC_BSD2CLAUSE], [License: BSD-2-Clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+   1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer. 
+ .
+   2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.])dnl
+dnl
+dnl
+dnl BSD-3-Clause
+dnl
+define([LIC_BSD3CLAUSE], [License: BSD-3-Clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+   1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer. 
+ .
+   2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ .
+   3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.])dnl
+dnl
+dnl
+dnl BSD-4-Clause
+dnl
+define([LIC_BSD4CLAUSE], [License: BSD-4-Clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+   1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer. 
+ .
+   2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+ .
+   3. All advertising materials mentioning features or use of this
+   software must display the following acknowledgement:
+   This product includes software developed by "the organization". 
+ .
+   4. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+ .
+ THIS SOFTWARE IS PROVIDED BY COPYRIGHT HOLDER "AS IS" AND ANY EXPRESS OR
+ IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ IN NO EVENT SHALL COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT,
+ INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.])dnl
+dnl
+dnl
+dnl MIT
+dnl
+define([LIC_MIT], [License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ of the Software, and to permit persons to whom the Software is furnished to do
+ so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.])dnl
+dnl
+dnl
+dnl ISC
+dnl
+define([LIC_ISC], [License: ISC
+ Permission to use, copy, modify, and/or distribute this software for any purpose
+ with or without fee is hereby granted, provided that the above copyright notice
+ and this permission notice appear in all copies.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ OF THIS SOFTWARE.])dnl
+dnl
+dnl
+dnl zlib/libpng
+dnl
+define([LIC_ZLIB], [License: zlib/libpng
+ This software is provided 'as-is', without any express or implied warranty.
+ In no event will the authors be held liable for any damages arising from the
+ use of this software.
+ .
+ Permission is granted to anyone to use this software for any purpose, including
+ commercial applications, and to alter it and redistribute it freely, subject
+ to the following restrictions:
+ .
+   1. The origin of this software must not be misrepresented; you must not claim
+   that you wrote the original software. If you use this software in a product,
+   an acknowledgment in the product documentation would be appreciated but is not
+   required.
+ .
+   2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+ .
+   3. This notice may not be removed or altered from any source distribution.])dnl
+dnl
+dnl
+dnl Public Domain
+dnl
+define([LIC_PD], [License: public-domain
+ No license required for any purpose; the work is not subject to copyright
+ in any jurisdiction.])dnl
+dnl
+dnl
+dnl CC0
+dnl
+define([LIC_CC0], [License: CC0
+ This is a human-readable summary of the Legal Code:
+ <http://creativecommons.org/publicdomain/zero/1.0/legalcode>
+ .
+ The person who associated a work with this deed has dedicated the work to the
+ public domain by waiving all of his or her rights to the work worldwide under
+ copyright law, including all related and neighboring rights, to the extent
+ allowed by law.
+ .
+ You can copy, modify, distribute and perform the work, even for commercial
+ purposes, all without asking permission.])dnl
+dnl
+dnl
+dnl CC-BY conditions
+dnl
+define([COMMON_CC_BY], [You are free to:
+   Share - copy and redistribute the material in any medium or format
+   .
+   Adapt - remix, transform, and build upon the material for any purpose,
+   even commercially.
+ .
+ The licensor cannot revoke these freedoms as long as you follow the
+ license terms.
+ .
+ Under the following terms:
+   Attribution - You must give appropriate credit, provide a link to the
+   license, and indicate if changes were made. You may do so in any
+   reasonable manner, but not in any way that suggests the licensor
+   endorses you or your use.
+ .
+ No additional restrictions - You may not apply legal terms or
+ technological measures that legally restrict others from doing anything
+ the license permits.
+ .
+ Notices:
+ You do not have to comply with the license for elements of the material
+ in the public domain or where your use is permitted by an applicable
+ exception or limitation.
+ .
+ No warranties are given. The license may not give you all of the permissions
+ necessary for your intended use. For example, other rights such as publicity,
+ privacy, or moral rights may limit how you use the material.])dnl
+dnl
+dnl
+dnl CC-BY-2.5
+dnl
+define([LIC_CC_BY_25], [License: CC-BY-2.5
+ This work was made availabe under the terms of the Creative Commons
+ Attribution 2.5 Generic license (CC-BY-2.5).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by/2.5/legalcode>
+ .
+ COMMON_CC_BY])dnl
+dnl
+dnl
+dnl CC-BY-3.0
+dnl
+define([LIC_CC_BY_30], [License: CC-BY-3.0
+ This work was made availabe under the terms of the Creative Commons
+ Attribution 3.0 Unported license (CC-BY-3.0).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by/3.0/legalcode>
+ .
+ COMMON_CC_BY])dnl
+dnl
+dnl
+dnl CC-BY-4.0
+dnl
+define([LIC_CC_BY_40], [License: CC-BY-4.0
+ This work was made availabe under the terms of the Creative Commons
+ Attribution 4.0 International license (CC-BY-4.0).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by/4.0/legalcode>
+ .
+ COMMON_CC_BY])dnl
+dnl
+dnl
+dnl CC-BY-SA conditions
+dnl
+define([COMMON_CC_BY_SA], [You are free to:
+   Share - copy and redistribute the material in any medium or format
+   .
+   Adapt - remix, transform, and build upon the material for any purpose,
+   even commercially.
+ .
+ The licensor cannot revoke these freedoms as long as you follow the
+ license terms.
+ .
+ Under the following terms:
+   Attribution - You must give appropriate credit, provide a link to the
+   license, and indicate if changes were made. You may do so in any
+   reasonable manner, but not in any way that suggests the licensor
+   endorses you or your use.
+   .
+   ShareAlike - If you remix, transform, or build upon the material, you
+   must distribute your contributions under the same license as the original.
+ .
+ No additional restrictions - You may not apply legal terms or
+ technological measures that legally restrict others from doing anything
+ the license permits.
+ .
+ Notices:
+ You do not have to comply with the license for elements of the material
+ in the public domain or where your use is permitted by an applicable
+ exception or limitation.
+ .
+ No warranties are given. The license may not give you all of the permissions
+ necessary for your intended use. For example, other rights such as publicity,
+ privacy, or moral rights may limit how you use the material.])dnl
+dnl
+dnl
+dnl CC-BY-SA-2.5
+dnl
+define([LIC_CC_BY_SA_25], [License: CC-BY-SA-2.5
+ This work was made availabe under the terms of the Creative Commons
+ Attribution-ShareAlike 2.5 Generic license (CC-BY-SA-2.5).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by-sa/2.5/legalcode>
+ .
+ COMMON_CC_BY_SA])dnl
+dnl
+dnl
+dnl CC-BY-SA-3.0
+dnl
+define([LIC_CC_BY_SA_30], [License: CC-BY-SA-3.0
+ This work was made availabe under the terms of the Creative Commons
+ Attribution-ShareAlike 3.0 Unported license (CC-BY-SA-3.0).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by-sa/3.0/legalcode>
+ .
+ COMMON_CC_BY_SA])dnl
+dnl
+dnl
+dnl CC-BY-SA-4.0
+dnl
+define([LIC_CC_BY_SA_40], [License: CC-BY-SA-4.0
+ This work was made availabe under the terms of the Creative Commons
+ Attribution-ShareAlike 4.0 International license (CC-BY-SA-4.0).
+ .
+ This is a human-readable summary of (and not a substitute for) the license.
+ The complete text of the license can be found
+ at <https://creativecommons.org/licenses/by-sa/4.0/legalcode>
+ .
+ COMMON_CC_BY_SA])dnl
+dnl
+dnl
+EOL
+  rm -f debian/copyright.m4in
+}
+
+if [ "$1" = "cat" ]; then
+
+  if ! file --version 2>/dev/null >/dev/null; then
+    echo "error: command \`file' not in PATH"
+    exit 1
+  fi
+  if [ ! -e "debian" ]; then
+    echo "error: no directory \`debian' in current working directory"
+    exit 1
+  fi
+  if [ -e "debian" ] && [ ! -d "debian" ]; then
+    echo "error: \`debian' is not a directory"
+    exit 1
+  fi
+
+  files="`find debian/* -type f`"
+  links="`find debian/* -type l`"
+
+  if [ -n $links ]; then
+    echo "@@@@@@ links:begin @@@@@@"
+    for l in $links; do
+      echo "$l|$(readlink $l)"
+    done
+    echo "@@@@@@ links:end @@@@@@"
+  fi
+
+  for f in $files; do
+    if (file -b --mime $f | grep -q 'charset=binary'); then
+      echo "@@@@@@ $f:base64:begin @@@@@@"
+      base64 $f
+      echo "@@@@@@ $f:base64:end @@@@@@"
+    else
+      echo "@@@@@@ $f:begin @@@@@@"
+      cat $f
+      echo "@@@@@@ $f:end @@@@@@"
+    fi
+  done
+
+elif [ "$1" = "uncat" ]; then
+
+  if [ -n $2 ]; then
+    in="$2"
+  else
+    usage
+  fi
+
+  if [ -e "debian" ]; then
+    echo "error: \`debian' already present in working directory"
+    exit 1
+  fi
+
+  textfiles="$(grep '^@@@@@@ debian/.*:begin @@@@@@' "$in" | \
+    sed 's|@@@@@@ ||g; s|:begin @@@@@@$||g' | grep -v ':base64$')"
+  binfiles="$(grep '^@@@@@@ debian/.*:base64:begin @@@@@@' "$in" | \
+    sed 's|@@@@@@ ||g; s|:base64:begin @@@@@@$||g')"
+
+  links_begin="@@@@@@ links:begin @@@@@@"
+  links_end="@@@@@@ links:end @@@@@@"
+  if grep -q "$links_begin" "$in" -a grep -q "$links_end" "$in"; then
+    begin=$(($(grep -n "$links_begin" "$in" | cut -d':' -f1) + 1))
+    end=$(($(grep -n "$links_end" "$in" | cut -d':' -f1) - 1))
+    for n in `seq $begin $end`; do
+      line="$(sed -n "${n}p" "$in")"
+      link="$(echo $line | cut -d'|' -f1)"
+      target="$(echo $line | cut -d'|' -f2)"
+      mkdir -p `dirname "$link"`
+      ln -fs "$target" "$link"
+    done
+  fi
+
+  for f in $textfiles; do
+    mkdir -p $(dirname "$f")
+    begin=$(($(grep -n "@@@@@@ $f:begin @@@@@@" "$in" | cut -d':' -f1) + 1))
+    end=$(($(grep -n "@@@@@@ $f:end @@@@@@" "$in" | cut -d':' -f1) - 1))
+    tail -n+$begin "$in" | head -n$(( $end - $(($begin-1)))) > $f
+  done
+  chmod a+x debian/rules
+  if [ -f debian/copyright ]; then
+    license_macros
+  fi
+
+  for f in $binfiles; do
+    mkdir -p $(dirname "$f")
+    begin=$(($(grep -n "@@@@@@ $f:base64:begin @@@@@@" "$in" | cut -d':' -f1) + 1))
+    end=$(($(grep -n "@@@@@@ $f:base64:end @@@@@@" "$in" | cut -d':' -f1) - 1))
+    tail -n+$begin "$in" | head -n$(( $end - $(($begin-1)))) | base64 -d > $f
+  done
+
+elif [ "$1" = "licenses" ]; then
+
+  echo
+  echo "Available license macros for debian/copyright:"
+  echo
+  grep -e '^define(\[LIC_' "$0" | cut -d'[' -f2,3 | sed 's|\], \[| >> |g'
+  echo
+
+else
+
+  usage
+
+fi
