@@ -25,16 +25,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Last modified: 2016-09-03
+# Last modified: 2016-09-27
 
 
 usage () {
   cat <<EOL
+Merge Debian packaging files to single diff-like text files
+and vice-versa. Handles binary files and symbolic links too.
 
 usage:
   $0 cat > OUT
   $0 uncat FILE
   $0 licenses
+
+options:
+  cat           Merge files in ./debian and output to STDOUT
+  uncat         Create packaging files from input file and
+                save to ./debian
+  licenses      Show macros that can be used to replace DEP5
+                license paragraphs in debian/copyright; the
+                macros will later be resolved when restoring
+                the packaging files with "uncat"
 
 EOL
   exit 1
@@ -694,12 +705,17 @@ EOL
   rm -f debian/copyright.m4in
 }
 
+if ! file --version 2>/dev/null >/dev/null; then
+  echo "error: command \`file' not in PATH"
+  exit 1
+fi
+if ! m4 --version 2>/dev/null >/dev/null; then
+  echo "error: command \`m4' not in PATH"
+  exit 1
+fi
+
 if [ "$1" = "cat" ]; then
 
-  if ! file --version 2>/dev/null >/dev/null; then
-    echo "error: command \`file' not in PATH"
-    exit 1
-  fi
   if [ ! -e "debian" ]; then
     echo "error: no directory \`debian' in current working directory"
     exit 1
