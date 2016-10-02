@@ -4,7 +4,7 @@ LANG=C
 LANGUAGE=C
 LC_ALL=C
 
-dpkg-buildpackage -b -us -uc 2>&1 | tee build.log
+dpkg-buildpackage -j`nproc` -rfakeroot -b -us -uc 2>&1 | tee build.log
 
 packages="$(find .. -maxdepth 1 -type f -name *.deb)"
 
