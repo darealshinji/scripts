@@ -1,12 +1,14 @@
 #!/bin/sh
 
+# sudo apt-get install clang-3.6 llvm llvm-3.8-dev
+
 cc="clang-3.6"
 cxx="clang++-3.6"
-llvm_config="/usr/bin/llvm-config-3.6"
-llvm_cmake_dir="/usr/share/llvm-3.6/cmake"
+llvm_cmake_dir="/usr/share/llvm-3.8/cmake"
 prefix="$HOME/libcxx"
 
 set -v
+set -e
 
 checkout="$(mktemp -d)"
 cd $checkout
@@ -20,14 +22,13 @@ rm -rf libcxxabi/build
 mkdir -p libcxxabi/build
 cd libcxxabi/build
 
-sed -i "s|\${LLVM_BINARY_DIR}\/share\/llvm\/cmake|$llvm_cmake_dir|" ../CMakeLists.txt
+sed -i "s|\${LLVM_BINARY_DIR}\/lib\${LLVM_LIBDIR_SUFFIX}\/cmake\/llvm|$llvm_cmake_dir|" ../CMakeLists.txt
 
 cmake .. -DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX="$prefix" \
 	-DCMAKE_C_COMPILER="$cc" \
 	-DCMAKE_CXX_COMPILER="$cxx" \
-	-DLLVM_CONFIG="$llvm_config" \
-	-DLLVM_CMAKE_PATH="/usr/share/llvm-3.6/cmake" \
+	-DLLVM_CMAKE_PATH="$llvm_cmake_dir" \
 	-DLIBCXXABI_LIBCXX_PATH="$checkout/libcxx" \
 	-DLIBCXXABI_ENABLE_SHARED=OFF \
 	-DLIBCXXABI_ENABLE_STATIC=ON \
@@ -53,10 +54,8 @@ cmake .. -DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX="$prefix" \
 	-DCMAKE_C_COMPILER="$cc" \
 	-DCMAKE_CXX_COMPILER="$cxx" \
-	-DLLVM_CONFIG="$llvm_config" \
 	-DLIBCXX_CXX_ABI="libcxxabi" \
 	-DLIBCXX_CXX_ABI_INCLUDE_PATHS="$checkout/libcxxabi/include" \
-	-DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=ON \
 	-DLIBCXX_ENABLE_SHARED=OFF \
 	-DLIBCXX_ENABLE_THREADS=OFF \
 	-DLIBCXX_INCLUDE_DOCS=OFF
@@ -64,7 +63,14 @@ make -j4
 make -C include install
 cp -f "$checkout/libcxxabi/include"/* "$prefix/include"
 cd lib
-sh CMakeFiles/cxx.dir/link.txt
+if [ -f "CMakeFiles/cxx_static.dir/link.txt" ]; then
+	cxx_dir="cxx_static.dir"
+elif [ -f "CMakeFiles/cxx.dir/link.txt" ]; then
+	cxx_dir="cxx.dir"
+else
+	exit 1
+fi
+sh CMakeFiles/$cxx_dir/link.txt
 cp -f libc++.a "$prefix/lib"
 
 ### libc++-wrapper ###
