@@ -1,0 +1,139 @@
+#!/bin/sh
+
+# Copyright (c) 2016, djcj <djcj@gmx.de>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+# simple archive format inspired by Ken Silverman's GRP format (used in Duke Nukem 3D)
+
+# The archive format is made of an index (text, UNIX line endings)
+# with the files appended.
+# The index contains the following information:
+#  a line that makes it able to grep the index
+#  file counter
+#  checksum format: md5, sha1, sha224, sha256, sha384, sha512
+#  filenames
+#  filesizes in bytes + checksums (separated by space)
+#  filedata
+
+printHelp () {
+    echo "create an archive:"
+    echo "  $0 c archive.grp2 [file(s)|-]"
+    echo ""
+    echo "extract files from archive:"
+    echo "  $0 [x|e] archive.grp2"
+}
+
+id="\000<GROUP\000INDEX\000BEGIN>\000"
+
+option="$1"
+archive="$2"
+if [ $# -gt 2 ]; then
+  shift 2
+  count="$#"
+fi
+
+checksum_format="sha256"
+
+create="no"
+extract="no"
+
+case $option in
+  -c|c)
+    operation="create"
+    ;;
+  -x|x|-e|e)
+    operation="extract"
+    ;;
+  -h|--help)
+    printHelp
+    exit 0
+    ;;
+  *)
+    test -z $option || echo "error: unkown command \`$option'."
+    echo "See \`$0 --help' for available commands."
+    exit 1
+    ;;
+esac
+
+if [ "$operation" = "create" ]; then
+
+  if [ -e "$archive" ]; then
+    echo "error: \`$archive': file already exists"
+    exit 1
+  fi
+  if [ "$archive" != "-" ]; then
+    out=">> \"$archive\""
+  fi
+
+  # start with \n so grep can find the index if
+  # the archive was appended to another file
+  eval printf \"\\n${id}\\n\" $out
+  eval echo $count $out
+  eval echo $checksum_format $out
+
+  # filenames
+  for n in `seq 1 $count`; do
+    eval echo "\$$n" $out
+  done
+
+  # filesizes + checksums
+  for n in `seq 1 $count`; do
+    eval size=\$\(du -b "\$$n"\)
+    eval checksum=\$\(\${checksum_format}sum -b "\$$n"\)
+    size=$(echo $size | awk '{print $1}')
+    checksum=$(echo $checksum | awk '{print $1}')
+    eval echo "$size $checksum" $out
+  done
+
+  # append data
+  for n in `seq 1 $count`; do
+    eval cat "\$$n" $out
+  done
+
+elif [ "$operation" = "extract" ]; then
+
+  index=$(grep -anx -P "^${id}$" "$archive" | cut -d ':' -f1)
+  count=$(sed -n $(( $index + 1 ))p "$archive")
+  checksum_format=$(sed -n $(( $index + 2 ))p "$archive")
+  data_begin=$(( $index + 3 + ($count * 2) ))
+
+  skip_bytes=0
+  filesize=0
+
+  for n in `seq 1 $count`; do
+    filename="$(sed -n $(( $index + 2 + $n ))p "$archive")"
+    filesize_checksum=$(sed -n $(( $index + 2 + $n + $count ))p "$archive")
+
+    # calculate this first from old values
+    skip_bytes=$(( $skip_bytes + $filesize ))
+
+    filesize=$(( $(echo "$filesize_checksum" | cut -d ' ' -f1) ))
+    checksum=$(echo "$filesize_checksum" | cut -d ' ' -f2)
+
+    echo "extract \`$filename'"
+    mkdir -p "$(dirname "$filename")"
+    tail -n+$data_begin "$archive" | dd count=$filesize skip=$skip_bytes bs=1 of="$filename"
+
+    printf "verify checksum: "
+    echo "$checksum *$filename" | ${checksum_format}sum -c
+    echo
+  done
+
+fi
