@@ -4,27 +4,46 @@ LANG=C
 LANGUAGE=C
 LC_ALL=C
 
-dpkg-buildpackage -j`nproc` -rfakeroot -b -us -uc 2>&1 | tee build.log
+packages="$(grep '^Package: ' debian/control | cut -d ' ' -f2)"
+source=$(dpkg-parsechangelog -S Source)
+version=$(dpkg-parsechangelog -S Version)
+arch=$(dpkg-architecture -qDEB_HOST_ARCH)
+log="../build_${source}_${version}_${arch}.log"
 
-packages="$(find .. -maxdepth 1 -type f -name *.deb)"
+dpkg-checkbuilddeps || exit 1
+dpkg-buildpackage -j`nproc` -rfakeroot -b -us -uc 2>&1 | tee $log
 
-if [ -n "$packages" ]; then
-	for f in $packages ; do
-		echo "$f:"
-		dpkg-deb -I $f
-		echo ""
-	done 2>&1 | tee -a build.log
-	for f in $packages ; do
-		echo "$f:"
-		dpkg-deb -c $f
-		echo ""
-	done 2>&1 | tee -a build.log
-	if [ -x /usr/bin/lintian ]; then
-		for f in $packages ; do
-			echo "$f:"
-			lintian $f
-			echo ""
-		done 2>&1 | tee -a build.log
-	fi
+for p in $packages ; do
+  f="../${p}_${version}_${arch}.deb"
+  if [ -e $f ]; then
+    echo "$f:"
+    dpkg-deb -I $f
+    echo ""
+  fi
+done 2>&1 | tee -a $log
+
+for p in $packages ; do
+  f="../${p}_${version}_${arch}.deb"
+  if [ -e $f ]; then
+    echo "$f:"
+    dpkg-deb -c $f
+    echo ""
+  fi
+done 2>&1 | tee -a $log
+
+if [ -x $(which lintian) ]; then
+  echo ""
+  echo "Lintian checks:"
+  echo ""
+  for p in $packages ; do
+    f="../${p}_${version}_${arch}.deb"
+    if [ -e $f ]; then
+      echo "$f:"
+      lintian $f
+      echo ""
+    fi
+  done 2>&1 | tee -a $log
 fi
+
+sed -i "s|$(dirname $PWD)|<<BUILDROOT>>|g" $log
 
