@@ -130,6 +130,6 @@ if [ ! -z "$settings0" ] ; then
     echo ""
 fi
 echo "Converted to x264 cli:"
-echo "x264$bit $options -o output.mp4 <input>" | sed -e 's/    / /g; s/   / /g; s/  / /g; s/-- //g'
+echo "x264$bit $options -o output.mp4 <input>" | sed -e 's/ \+/ /g; s/-- //g'
 echo ""
 
