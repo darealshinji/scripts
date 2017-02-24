@@ -5,8 +5,8 @@ LANGUAGE=C
 LC_ALL=C
 
 packages="$(grep '^Package: ' debian/control | cut -d ' ' -f2)"
-source=$(dpkg-parsechangelog -S Source)
-version=$(dpkg-parsechangelog -S Version)
+source=$(dpkg-parsechangelog | grep '^Source:' | cut -d ' ' -f2)
+version=$(dpkg-parsechangelog | grep '^Version:' | cut -d ' ' -f2)
 arch=$(dpkg-architecture -qDEB_HOST_ARCH)
 log="../build_${source}_${version}_${arch}.log"
 
