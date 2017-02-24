@@ -64,9 +64,14 @@ if [ ! -z "$partitions0" ] ; then
 fi
 
 
-settings=$(echo " / $settings0" | sed -e 's/=/ /g; s/ \/ / \n--/g; s/_/-/g' | sed -e '
+settings=$(echo " / $settings0" | sed -e '
+s/=/ /g;
+s/^/--/;
+s/ \/ / \n--/g;
+s/_/-/g;
+' | sed -re '
 s/--me-range/--merange/;
-s/--ip-ratio/--ipratio/;
+s/--(ip|pb)-ratio/--\1ratio/;
 s/--deblock 1:/--deblock /;
 s/--keyint-min/--min-keyint/;
 s/--cqm 0/--cqm flat/;
@@ -78,11 +83,11 @@ s/--direct 1/--direct spatial/;
 s/--direct 2/--direct temporal/;
 s/--direct 3/--direct auto/;
 s/--interlaced fake/--fake-interlaced/;
-s/--interlaced bff/--bff/;
-s/--interlaced tff/--tff/;
+s/--interlaced (bff|tff)/--\1/;
+s/--interlaced 0//;
 
-s/--cabac 1/--cabac/; s/--cabac 0/--no-cabac/;
-s/--8x8dct 1/--8x8dct/; s/--8x8dct 0/--no-8x8dct/;
+s/--cabac 1//; s/--cabac 0/--no-cabac/;
+s/--8x8dct 1//; s/--8x8dct 0/--no-8x8dct/;
 
 s/--mbtree 1//; s/--mbtree 0/--no-mbtree/;
 s/--fast-pskip 1//; s/--fast-pskip 0/--no-fast-pskip/;
@@ -98,9 +103,11 @@ s/--open-gop 1/--open-gop/; s/--open-gop 0//;
 s/--bluray-compat 1/--bluray-compat/; s/--bluray-compat 0//;
 s/--sliced-threads 1/--sliced-threads/; s/--sliced-threads 0//;
 
-/--aq /d;
-/--analyse /d;
-/--deadzone /d;
+s/--filler 1/--filler/; s/--filler 0//;
+s/--aq ([^:]+):([^:]+)/--aq-strength \1 --aq2-strength \2/;
+s/--aq-factor ([^:]+):([^:]+):([^:]+)/--aq-ifactor \1 --aq-pfactor \2 --aq-bfactor \3/;
+s/--deadzone ([^,]+),([^,]+)/--deadzone-inter \1 --deadzone-intra \2/;
+
 /--rc /d;
 ' | tr -d '\n')
 
@@ -123,6 +130,6 @@ if [ ! -z "$settings0" ] ; then
     echo ""
 fi
 echo "Converted to x264 cli:"
-echo "x264$bit $options -o output.mp4 <input>" | sed -e 's/    / /g; s/   / /g; s/  / /g; s/-- //g'
+echo "x264$bit $options -o output.mp4 <input>" | sed -e 's/ \+/ /g; s/-- //g'
 echo ""
 
