@@ -86,7 +86,6 @@ fi
 to_unix="yes"
 mixed_mode="no"
 absolute="no"
-windir="no"
 
 while [[ $# -gt 0 ]]; do
   opt="$1"
