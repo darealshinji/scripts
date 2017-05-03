@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This is free and unencumbered software released into the public domain.
 #
@@ -27,8 +27,6 @@
 
 # Author: djcj <djcj@gmx.de>
 
-#set -x
-
 #LXSS = C:\Users\<WINUSER>\AppData\Local\lxss
 #/mnt/d -> D:
 #/mnt -> <LXSS>\mnt
@@ -36,17 +34,43 @@
 #/root -> <LXSS>\root
 #/ -> <LXSS>\rootfs
 
-print_usage() {
-  echo "usage:"
-  echo "  $0 [-w|-u|-m] path"
-  echo "  $0 -h"
-  echo ""
-  echo "  -w  print Windows path"
-  echo "  -u  print Unix path"
-  echo "  -m  print Windows path with forward slashes (mixed mode)"
-  echo "  -h  show this help"
-  echo ""
+last="${!#}"
+
+function print_usage() {
+  cat <<EOL
+usage:
+$(basename $0) [-u|-w|-m] [-a] path"
+$(basename $0) -h|--help"
+
+Convert Unix and Windows format paths.
+
+Output type options:
+  -u, --unix        (default) print Unix form of NAMEs (/mnt/c/winnt)
+  -w, --windows     print Windows form of NAMEs (C:\\WINNT)
+  -m, --mixed       like --windows, but with regular slashes (C:/WINNT)
+
+Path conversion options:
+  -a, --absolute    output absolute path
+
+Other options:
+  -h, --help        output usage information and exit
+
+EOL
   exit $1
+}
+
+function checkarg() {
+  if [ "$1" = "$last" ]; then
+    echo "Error: missing path argument"
+    exit 1
+  fi
+}
+
+function wincmd() {
+  if [ -n "$1" ]; then
+    echo "$(cmd.exe /C "${1}")" | tr -d '\r'
+  fi
+  exit
 }
 
 if !(grep -q 'Microsoft' /proc/version 2>/dev/null || 
@@ -61,24 +85,44 @@ fi
 
 to_unix="yes"
 mixed_mode="no"
+absolute="no"
+windir="no"
 
-case "$1" in
-  "-w") to_unix="no"; p="$2";;
-  "-u") p="$2";;
-  "-m") to_unix="no"; mixed_mode="yes"; p="$2";;
-  "-h") print_usage 0;;
-  *)    p="$1";;
-esac
+while [[ $# -gt 0 ]]; do
+  opt="$1"
+  case "$opt" in
+    "-w"|"--windows")
+      to_unix="no"
+      checkarg "$opt"
+      ;;
+    "-u"|"--unix")
+      to_unix="yes"
+      checkarg "$opt"
+      ;;
+    "-m"|"--mixed")
+      to_unix="no"
+      mixed_mode="yes"
+      checkarg "$opt"
+      ;;
+    "-a"|"--absolute")
+      absolute="yes"
+      checkarg "$opt"
+      ;;
+    "-h"|"--help")
+      print_usage 0
+      ;;
+    *)
+      ;;
+  esac
+  shift
+done
 
-if [ -z "$p" ]; then
-  print_usage 1
-fi
-
-p="$(echo "$p" | sed -e 's|\\\+|/|g')"
-winuser="$(/mnt/c/Windows/System32/whoami.exe 2>/dev/null | tr -d '\r' | cut -d'\' -f2)"
-lxss="C:/Users/$winuser/AppData/Local/lxss"
+p="$(echo "$last" | sed -e 's|\\\+|/|g')"
+user="$(wincmd whoami | cut -d '\' -f2)"
+lxss="C:/Users/$user/AppData/Local/lxss"
 
 if [ "$to_unix" = "yes" ]; then
+  # windows to unix
   lxss_len="$(printf "$lxss" | wc -m)"
   if [ "$(echo "$p" | head -c$lxss_len)" = "$lxss" ]; then
     lxss_cut="$(echo "$p" | cut -d'/' -f7)"
@@ -96,7 +140,14 @@ if [ "$to_unix" = "yes" ]; then
     append="$(echo "$p" | tail -c+3)"
     p="/mnt/${drive}${append}"
   fi
+  if [ "$absolute" = "yes" ]; then
+    p="$(realpath -m "$p")"
+  fi
 else
+  # unix to windows
+  if [ "$absolute" = "yes" ]; then
+    p="$(realpath -m "$p")"
+  fi
   if [ "$(echo "$p" | head -c1)" = "/" ]; then
     if [ -n "$(echo "$p" | head -c7 | grep -e '^/mnt/[a-z]$')" ] ||
        [ -n "$(echo "$p" | head -c7 | grep -e '^/mnt/[a-z]/$')" ];
