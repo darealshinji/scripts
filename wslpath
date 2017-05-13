@@ -70,7 +70,6 @@ function wincmd() {
   if [ -n "$1" ]; then
     echo "$(cmd.exe /C "${1}")" | tr -d '\r'
   fi
-  exit
 }
 
 if !(grep -q 'Microsoft' /proc/version 2>/dev/null || 
