@@ -68,7 +68,7 @@ function checkarg() {
 
 function wincmd() {
   if [ -n "$1" ]; then
-    echo "$(cmd.exe /C "${1}")" | tr -d '\r'
+    echo "$(cmd.exe /C "${1}" 2>/dev/null)" | tr -d '\r'
   fi
 }
 
