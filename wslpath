@@ -38,7 +38,7 @@
 
 # TODO: investigate using /proc/mounts
 
-last="${!#}"
+last=${!#}
 
 function print_usage() {
   cat <<EOL
@@ -80,31 +80,30 @@ if [ -z "$1" ]; then
   print_usage 1
 fi
 
-to_unix="yes"
-mixed_mode="no"
-absolute="no"
+to_unix=yes
+mixed_mode=no
+absolute=no
 
 while [[ $# -gt 0 ]]; do
-  opt="$1"
-  case "$opt" in
-    "-w"|"--windows")
-      to_unix="no"
-      checkarg "$opt"
+  case $1 in
+    -w|--windows)
+      to_unix=no
+      checkarg $1
       ;;
-    "-u"|"--unix")
-      to_unix="yes"
-      checkarg "$opt"
+    -u|--unix)
+      to_unix=yes
+      checkarg $1
       ;;
-    "-m"|"--mixed")
-      to_unix="no"
-      mixed_mode="yes"
-      checkarg "$opt"
+    -m|--mixed)
+      to_unix=no
+      mixed_mode=yes
+      checkarg $1
       ;;
-    "-a"|"--absolute")
-      absolute="yes"
-      checkarg "$opt"
+    -a|--absolute)
+      absolute=yes
+      checkarg $1
       ;;
-    "-h"|"--help")
+    -h|--help)
       print_usage 0
       ;;
     *)
@@ -113,63 +112,59 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-p="$(echo "$last" | sed -e 's|\\\+|/|g')"
+p=$(echo $last | sed -e 's|\\\+|/|g')
 
-lxss="$(cmd.exe /C echo %LOCALAPPDATA% 2>/dev/null | tr -d '\r' | tr '\\' '/')"
-if [ "$lxss" = "%LOCALAPPDATA%" ]; then
-  user="$(whoami.exe 2>/dev/null | tr -d '\r' | cut -d '\' -f2)"
-  lxss="C:/Users/$user/AppData/Local/lxss"
-else
-  lxss="$lxss/lxss"
+lxss=$(cmd.exe /C echo %LOCALAPPDATA% 2>/dev/null | sed -e 's|\r||;s|\\|/|g')/lxss
+if [ "$lxss" = %LOCALAPPDATA%/lxss ]; then
+  user=$(whoami.exe 2>/dev/null | sed -n 's|\r||;s|^.*\\||p')
+  lxss=C:/Users/$user/AppData/Local/lxss
 fi
 
-if [ "$to_unix" = "yes" ]; then
+if [ $to_unix = yes ]; then
   # windows to unix
-  lxss_len="$(printf "$lxss" | wc -m)"
-  if [ "$(echo "$p" | head -c$lxss_len)" = "$lxss" ]; then
-    case "$(echo "$p" | cut -d'/' -f7)" in
-      "cache"|"data"|"home"|"mnt"|"root")
-          p="$(echo "$p" | tail -c+$(($lxss_len+1)))"
-          ;;
-      "rootfs")
-          p="$(echo "$p" | tail -c+$(($lxss_len+8)))"
-          test -n "$p" || p="/"
-          ;;
+  lxss_len=$(printf $lxss | wc -m)
+  if [ "${p:0:$lxss_len}" = "$lxss" ]; then
+    case $(echo $p | cut -d'/' -f7) in
+      cache|data|home|mnt|root)
+        p=${p:$lxss_len}
+        ;;
+      rootfs)
+        p=${p:$lxss_len+7}
+        test -n "$p" || p=/
+        ;;
     esac
   fi
-  if [ -n "$(echo "$p" | head -c3 | grep -e '^[A-Za-z]:$')" ] ||
-     [ -n "$(echo "$p" | head -c3 | grep -e '^[A-Za-z]:/$')" ];
-  then
-    drive=$(echo "$p" | head -c1 | tr '[A-Z]' '[a-z]')
-    append="$(echo "$p" | tail -c+3)"
-    p="/mnt/${drive}${append}"
+  if [ -n "$(echo ${p:0:3} | grep -e '^[A-Za-z]:/\?$')" ]; then
+    drive=${p:0:1}
+    p=/mnt/${drive,,}${p:2}
   fi
-  if [ "$absolute" = "yes" ]; then
-    p="$(realpath -m "$p")"
+  if [ $absolute = yes ]; then
+    p=$(realpath -m "$p")
   fi
 else
   # unix to windows
-  if [ "$absolute" = "yes" ]; then
-    p="$(realpath -m "$p")"
+  if [ $absolute = yes ]; then
+    p=$(realpath -m "$p")
   fi
-  if [ "$(echo "$p" | head -c1)" = "/" ]; then
-    if [ -n "$(echo "$p" | head -c7 | grep -e '^/mnt/[a-z]$')" ] ||
-       [ -n "$(echo "$p" | head -c7 | grep -e '^/mnt/[a-z]/$')" ];
-    then
-      drive=$(echo "$p" | head -c6 | tail -c1 | tr '[a-z]' '[A-Z]')
-      append="$(echo "$p" | tail -c+7)"
-      p="${drive}:${append}"
+  if [ "${p:0:1}" = / ]; then
+    if [ -n "$(echo ${p:0:7} | grep -e '^/mnt/[a-z]/\?$')" ]; then
+      drive=${p:5:1}
+      p=${drive^^}:${p:6}
     else
-      case "$(echo "$p" | cut -d '/' -f2)" in
-        "cache"|"data"|"home"|"mnt"|"root") p="${lxss}${p}";;
-        *) p="${lxss}/rootfs${p}";;
+      case $(echo $p | cut -d'/' -f2) in
+        cache|data|home|mnt|root)
+          p=${lxss}${p}
+          ;;
+        *)
+          p=${lxss}/rootfs${p}
+          ;;
       esac
     fi
   fi
-  if [ "$mixed_mode" != "yes" ]; then
-    p="$(echo "$p" | tr '/' '\\')"
+  if [ $mixed_mode = no ]; then
+    p=$(echo $p | tr '/' '\\')
   fi
 fi
 
-echo "$p"
+echo $p
 
