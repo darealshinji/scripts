@@ -32,7 +32,11 @@
 #/mnt -> <LXSS>\mnt
 #/home -> <LXSS>\home
 #/root -> <LXSS>\root
+#/cache -> <LXSS>\cache
+#/data -> <LXSS>\data
 #/ -> <LXSS>\rootfs
+
+# TODO: investigate using /proc/mounts
 
 last="${!#}"
 
@@ -154,12 +158,10 @@ else
       append="$(echo "$p" | tail -c+7)"
       p="${drive}:${append}"
     else
-      firstdir="$(echo "$p" | cut -d '/' -f2)"
-      if [ "$firstdir" = "home" ] || [ "$firstdir" = "root" ] || [ "$firstdir" = "mnt" ]; then
-        p="${lxss}${p}"
-      else
-        p="${lxss}/rootfs${p}"
-      fi
+      case "$(echo "$p" | cut -d '/' -f2)" in
+        "cache"|"data"|"home"|"mnt"|"root") p="${lxss}${p}";;
+        *) p="${lxss}/rootfs${p}";;
+      esac
     fi
   fi
   if [ "$mixed_mode" != "yes" ]; then
