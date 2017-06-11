@@ -127,13 +127,15 @@ if [ "$to_unix" = "yes" ]; then
   # windows to unix
   lxss_len="$(printf "$lxss" | wc -m)"
   if [ "$(echo "$p" | head -c$lxss_len)" = "$lxss" ]; then
-    lxss_cut="$(echo "$p" | cut -d'/' -f7)"
-    if [ "$lxss_cut" = "home" ] || [ "$lxss_cut" = "root" ] || [ "$lxss_cut" = "mnt" ]; then
-      p="$(echo "$p" | tail -c+$(($lxss_len+1)))"
-    elif [ "$lxss_cut" = "rootfs" ]; then
-      p="$(echo "$p" | tail -c+$(($lxss_len+8)))"
-      test -n "$p" || p="/"
-    fi
+    case "$(echo "$p" | cut -d'/' -f7)" in
+      "cache"|"data"|"home"|"mnt"|"root")
+          p="$(echo "$p" | tail -c+$(($lxss_len+1)))"
+          ;;
+      "rootfs")
+          p="$(echo "$p" | tail -c+$(($lxss_len+8)))"
+          test -n "$p" || p="/"
+          ;;
+    esac
   fi
   if [ -n "$(echo "$p" | head -c3 | grep -e '^[A-Za-z]:$')" ] ||
      [ -n "$(echo "$p" | head -c3 | grep -e '^[A-Za-z]:/$')" ];
