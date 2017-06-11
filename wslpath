@@ -110,8 +110,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 p="$(echo "$last" | sed -e 's|\\\+|/|g')"
-user="$(whoami.exe 2>/dev/null | tr -d '\r' | cut -d '\' -f2)"
-lxss="C:/Users/$user/AppData/Local/lxss"
+
+lxss="$(cmd.exe /C echo %LOCALAPPDATA% 2>/dev/null | tr -d '\r' | tr '\\' '/')"
+if [ "$lxss" = "%LOCALAPPDATA%" ]; then
+  user="$(whoami.exe 2>/dev/null | tr -d '\r' | cut -d '\' -f2)"
+  lxss="C:/Users/$user/AppData/Local/lxss"
+else
+  lxss="$lxss/lxss"
+fi
 
 if [ "$to_unix" = "yes" ]; then
   # windows to unix
