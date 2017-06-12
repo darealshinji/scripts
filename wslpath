@@ -119,7 +119,7 @@ if [ $to_unix = yes ]; then
       offset=$(printf $lxss/$subdir | wc -m)
       prefix=$(grep -e "^$subdir " /proc/mounts | awk '{print $2}')
       [ "$prefix" != / ] || prefix=""
-      p=${prefix}${p:$offset}
+      p=$prefix${p:$offset}
     fi
   fi
   if [ -n "$(echo ${p:0:3} | grep -e '^[A-Za-z]:/\?$')" ]; then
