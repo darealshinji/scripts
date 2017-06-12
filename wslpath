@@ -146,8 +146,7 @@ else
         firstDir=/
         offset=0
       fi
-      prefix=$lxss/$(grep -e " $firstDir " /proc/mounts | awk '{print $1}')
-      p=${prefix}${p:$offset}
+      p=$lxss/$(grep -e " $firstDir " /proc/mounts | awk '{print $1}')${p:$offset}
     fi
   fi
   if [ $mixed_mode = no ]; then
