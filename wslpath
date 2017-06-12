@@ -27,17 +27,6 @@
 
 # Author: djcj <djcj@gmx.de>
 
-#LXSS = C:\Users\<WINUSER>\AppData\Local\lxss
-#/mnt/d -> D:
-#/mnt -> <LXSS>\mnt
-#/home -> <LXSS>\home
-#/root -> <LXSS>\root
-#/cache -> <LXSS>\cache
-#/data -> <LXSS>\data
-#/ -> <LXSS>\rootfs
-
-# TODO: investigate using /proc/mounts
-
 last=${!#}
 
 function print_usage() {
@@ -112,7 +101,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-p=$(echo $last | sed -e 's|\\\+|/|g')
+p=$(echo $last | sed -e 's|\\\+|/|g;s|/\+|/|g')
 
 lxss=$(cmd.exe /C echo %LOCALAPPDATA% 2>/dev/null | sed -e 's|\r||;s|\\|/|g')/lxss
 if [ "$lxss" = %LOCALAPPDATA%/lxss ]; then
@@ -122,17 +111,16 @@ fi
 
 if [ $to_unix = yes ]; then
   # windows to unix
-  lxss_len=$(printf $lxss | wc -m)
-  if [ "${p:0:$lxss_len}" = "$lxss" ]; then
-    case $(echo $p | cut -d'/' -f7) in
-      cache|data|home|mnt|root)
-        p=${p:$lxss_len}
-        ;;
-      rootfs)
-        p=${p:$lxss_len+7}
-        test -n "$p" || p=/
-        ;;
-    esac
+  lxssLen=$(printf $lxss | wc -m)
+  if [ "${p:0:$lxssLen}" = "$lxss" ]; then
+    subdir=$(echo $p | cut -d'/' -f7)
+    lxssDirs=$(grep -e ' lxfs ' /proc/mounts | awk '{print $1}')
+    if [ -n "$(echo $lxssDirs | tr ' ' '\n' | grep -e "^$subdir\$")" ]; then
+      offset=$(printf $lxss/$subdir | wc -m)
+      prefix=$(grep -e "^$subdir " /proc/mounts | awk '{print $2}')
+      [ "$prefix" != / ] || prefix=""
+      p=${prefix}${p:$offset}
+    fi
   fi
   if [ -n "$(echo ${p:0:3} | grep -e '^[A-Za-z]:/\?$')" ]; then
     drive=${p:0:1}
@@ -151,14 +139,15 @@ else
       drive=${p:5:1}
       p=${drive^^}:${p:6}
     else
-      case $(echo $p | cut -d'/' -f2) in
-        cache|data|home|mnt|root)
-          p=${lxss}${p}
-          ;;
-        *)
-          p=${lxss}/rootfs${p}
-          ;;
-      esac
+      firstDir=/$(echo $p | cut -d'/' -f2)
+      offset=$(printf $firstDir | wc -m)
+      rootDirs=$(grep -e ' lxfs ' /proc/mounts | awk '{print $2}')
+      if [ -z "$(echo $rootDirs | tr ' ' '\n' | grep -e "^$firstDir\$")" ]; then
+        firstDir=/
+        offset=0
+      fi
+      prefix=$lxss/$(grep -e " $firstDir " /proc/mounts | awk '{print $1}')
+      p=${prefix}${p:$offset}
     fi
   fi
   if [ $mixed_mode = no ]; then
