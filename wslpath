@@ -43,7 +43,8 @@ Output type options:
   -m, --mixed       like --windows, but with regular slashes (C:/Windows)
 
 Path conversion options:
-  -a, --absolute    output absolute path
+  -r, --realpath    output absolute path with resolved symbolic links
+  -s, --subst-home  substitute Unix HOME path with Windows user path
 
 Other options:
   -h, --help        output usage information and exit
@@ -59,6 +60,10 @@ function checkarg() {
   fi
 }
 
+function win_env() {
+  printf $(cmd.exe /C echo %${1}% 2>/dev/null | sed -e 's|\r||;s|\\|/|g')
+}
+
 if !(grep -q 'Microsoft' /proc/version 2>/dev/null || 
      grep -q 'Microsoft' /proc/sys/kernel/osrelease 2>/dev/null)
 then
@@ -71,7 +76,8 @@ fi
 
 to_unix=yes
 mixed_mode=no
-absolute=no
+realpath=no
+subst_home=no
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -88,9 +94,12 @@ while [[ $# -gt 0 ]]; do
       mixed_mode=yes
       checkarg $1
       ;;
-    -a|--absolute)
-      absolute=yes
+    -r|--realpath)
+      realpath=yes
       checkarg $1
+      ;;
+    -s|--subst-home)
+      subst_home=yes
       ;;
     -h|--help)
       print_usage 0
@@ -101,48 +110,52 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-p=$(echo $last | sed -e 's|\\\+|/|g;s|/\+|/|g')
+p=$(printf $last | sed -e 's|\\\+|/|g;s|/\+|/|g')
 
-lxss=$(cmd.exe /C echo %LOCALAPPDATA% 2>/dev/null | sed -e 's|\r||;s|\\|/|g')/lxss
-if [ "$lxss" = %LOCALAPPDATA%/lxss ]; then
-  user=$(whoami.exe 2>/dev/null | sed -n 's|\r||;s|^.*\\||p')
-  lxss=C:/Users/$user/AppData/Local/lxss
+lxss=$(win_env LOCALAPPDATA)/lxss
+if [ $subst_home = yes ] && [ $to_unix = no ]; then
+  userprofile=$(win_env USERPROFILE)
+  drive=${userprofile:0:1}
+  win_home=/mnt/${drive,,}${userprofile:2}
 fi
 
 if [ $to_unix = yes ]; then
   # windows to unix
   lxssLen=$(printf $lxss | wc -m)
   if [ "${p:0:$lxssLen}" = "$lxss" ]; then
-    subdir=$(echo $p | cut -d'/' -f7)
+    subdir=$(printf $p | cut -d'/' -f7)
     lxssDirs=$(grep -e ' lxfs ' /proc/mounts | awk '{print $1}')
-    if [ -n "$(echo $lxssDirs | tr ' ' '\n' | grep -e "^$subdir\$")" ]; then
+    if [ -n "$(printf $lxssDirs | tr ' ' '\n' | grep -e "^$subdir\$")" ]; then
       offset=$(printf $lxss/$subdir | wc -m)
       prefix=$(grep -e "^$subdir " /proc/mounts | awk '{print $2}')
       [ "$prefix" != / ] || prefix=""
       p=$prefix${p:$offset}
     fi
   fi
-  if [ -n "$(echo ${p:0:3} | grep -e '^[A-Za-z]:/\?$')" ]; then
+  if [ -n "$(printf ${p:0:3} | grep -e '^[A-Za-z]:/\?$')" ]; then
     drive=${p:0:1}
     p=/mnt/${drive,,}${p:2}
   fi
-  if [ $absolute = yes ]; then
+  if [ $realpath = yes ]; then
     p=$(realpath -m "$p")
   fi
 else
   # unix to windows
-  if [ $absolute = yes ]; then
+  if [ $realpath = yes ]; then
     p=$(realpath -m "$p")
   fi
   if [ "${p:0:1}" = / ]; then
-    if [ -n "$(echo ${p:0:7} | grep -e '^/mnt/[a-z]/\?$')" ]; then
+    if [ $subst_home = yes ]; then
+      p=$(printf $p | sed "s|^$HOME|$win_home|")
+    fi
+    if [ -n "$(printf ${p:0:7} | grep -e '^/mnt/[a-z]/\?$')" ]; then
       drive=${p:5:1}
       p=${drive^^}:${p:6}
     else
-      firstDir=/$(echo $p | cut -d'/' -f2)
+      firstDir=/$(printf $p | cut -d'/' -f2)
       offset=$(printf $firstDir | wc -m)
       rootDirs=$(grep -e ' lxfs ' /proc/mounts | awk '{print $2}')
-      if [ -z "$(echo $rootDirs | tr ' ' '\n' | grep -e "^$firstDir\$")" ]; then
+      if [ -z "$(printf $rootDirs | tr ' ' '\n' | grep -e "^$firstDir\$")" ]; then
         firstDir=/
         offset=0
       fi
@@ -150,7 +163,7 @@ else
     fi
   fi
   if [ $mixed_mode = no ]; then
-    p=$(echo $p | tr '/' '\\')
+    p=$(printf $p | tr '/' '\\')
   fi
 fi
 
