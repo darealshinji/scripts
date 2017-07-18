@@ -44,3 +44,8 @@ for repo in $repos ; do
   fi
 done
 
+set +x
+
+echo ""
+echo "Done!"
+
