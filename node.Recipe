@@ -1,0 +1,88 @@
+#!/bin/bash
+# build AppImages of node, npm or npm packages
+
+node_release="lts"      # lts or current
+APP="node"              # node, npm or something provided by npm (i.e. asar)
+npm_pkg=                # npm package name; keep empty if it's identical with $APP
+
+wget -q "https://github.com/AppImage/AppImages/raw/master/functions.sh" -O functions.sh
+. ./functions.sh
+
+if [ "$node_release" = "lts" ]; then
+  latest="latest-boron"
+else
+  latest="latest"
+fi
+
+tarball=$(wget -q -O- "https://nodejs.org/dist/$latest/SHASUMS256.txt" | grep 'linux-x64\.tar\.xz' | awk '{print $2}')
+wget -c "https://nodejs.org/dist/$latest/$tarball" -O $tarball
+
+mkdir $APP.AppDir
+cd $APP.AppDir
+
+tar xf ../$tarball
+mv $(echo $tarball | sed 's|\.tar\.xz$||') usr
+rm -rf ./usr/include
+
+if [ "$APP" = "node" ]; then
+  rm -rf ./usr/lib/node_modules/npm ./usr/bin/npm ./usr/bin/npx
+  VERSION=$(echo $tarball | cut -d- -f2)
+else
+  if [ -z "$npm_pkg" ]; then
+    npm_pkg=$APP
+  fi
+  usr="$PWD/usr"
+
+  if [ "$APP" != "npm" ]; then
+    cd ./usr/lib
+    PATH="$usr/bin:$PATH" npm install $npm_pkg
+    cd -
+  fi
+
+  cd ./usr/lib/node_modules/$npm_pkg
+  PATH="$usr/bin:$PATH" npm version | tee "$usr/versions.json"
+  VERSION=$(grep -e "$npm_pkg:" "$usr/versions.json" | cut -d"'" -f2)
+  cd -
+
+  if [ "$APP" != "npm" ]; then
+    rm -rf ./usr/lib/node_modules/npm ./usr/bin/npm ./usr/bin/npx
+  fi
+
+  mv ./usr/bin/$APP ./usr/bin/$APP.real
+  cat <<EOF> ./usr/bin/$APP
+#!/bin/sh
+if [ -d "\$OWD" ]; then cd "\$OWD"; fi
+exec $APP.real \$*
+exit \$?
+EOF
+  chmod a+x ./usr/bin/$APP
+fi
+
+#wget -c "https://nodejs.org/static/favicon.png" -O $APP.png
+# public domain icon: https://commons.wikimedia.org/wiki/File:Application-x-executable.svg
+wget -c "https://upload.wikimedia.org/wikipedia/commons/2/29/Application-x-executable.svg" -O $APP.svg
+
+cat <<EOF> $APP.desktop
+[Desktop Entry]
+Name=$APP
+Exec=$APP
+Icon=$APP
+EOF
+
+get_apprun
+
+if [ -n "$VERSION" ]; then
+  VERSION="$VERSION.glibc$(glibc_needed)"
+else
+  VERSION="glibc$(glibc_needed)"
+fi
+
+cd ..
+
+# fails because of the minimal .desktop file
+#generate_type2_appimage
+
+wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+chmod a+x ./appimagetool
+./appimagetool -n $APP.AppDir $APP-$VERSION-x86_64.AppImage
+
