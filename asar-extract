@@ -188,7 +188,7 @@ parse () {
 save_file () {
   mkdir -p "$1/$(dirname "$file")"
   echo "saving \"$file\""
-  tail -c+$(($header_size + $offset + 1)) "$archive" | head -c$size > "$1/$file"
+  tail -c+$(($header_size + $offset + 2)) "$archive" | head -c$size > "$1/$file"
 }
 
 print_usage () {
@@ -241,32 +241,12 @@ if [ ! -e "$archive" ]; then
   print_usage 1
 fi
 
-chunk=4
-
-# still not entirely sure what this is for (chunk size/counter?)
-#val=$(head -c$chunk "$archive" | od -An -tu2 --endian=little)
-#offset1=$(( $(echo $val | awk '{print $1}') + $(echo $val | awk '{print $2}') ))
-#pos1=$chunk
-
 # this is used to calculate the header size
-val=$(tail -c+$chunk "$archive" | head -c$chunk | od -An -tu2 --endian=big)
-offset2=$(( $(echo $val | awk '{print $1}') + $(echo $val | awk '{print $2}') ))
-pos2=$(($chunk*2))
-
-# another value to calculate the header size?
-#val=$(tail -c+$(($chunk*2)) "$archive" | head -c$chunk | od -An -tu2 --endian=big)
-#offset3=$(( $(echo $val | awk '{print $1}') + $(echo $val | awk '{print $2}') ))
-#pos3=$(($chunk*3))
-
-# offset value to get the index data
-val=$(tail -c+$(($chunk*3)) "$archive" | head -c$chunk | od -An -tu2 --endian=big)
-offset4=$(( $(echo $val | awk '{print $1}') + $(echo $val | awk '{print $2}') ))
-#pos4=$(($chunk*4))
-
-header_size=$(($offset2 + $pos2))
+val=$(tail -c+4 "$archive" | head -c4 | od -An -tu2 --endian=big)
+header_size=$(( $(echo $val | awk '{print $1}') + $(echo $val | awk '{print $2}') + 7 ))
 
 # file index (JSON data)
-index=$(head -c$(($header_size - 1)) "$archive" | tail -c$offset4 | tokenize | parse)
+index=$(head -c$header_size "$archive" | tail -c+16 | tr -d '\0' | tokenize | parse)
 
 count=$(echo "$index" | grep ',"offset"]' | wc -l)
 files=$(echo "$index" | sed -n 's|,"offset"].*||p' | sed -e 's|","files","|/|g; s|"$||; s|^\["files","||')
