@@ -12,7 +12,7 @@ pfx=/opt/chroot
 extra_packages="build-essential nano bash-completion command-not-found software-properties-common"
 
 if [ -z $1 ]; then
-  echo "usage: $0 precise|trusty|xenial|zesty [i386]"
+  echo "usage: $0 trusty|xenial|bionic|cosmic [i386]"
   exit 1
 fi
 
@@ -27,7 +27,7 @@ if [ $EUID -ne 0 ]; then
 fi
 
 case $1 in
-  precise|trusty|xenial|zesty) codename=$1 ;;
+  trusty|xenial|bionic|cosmic) codename=$1 ;;
   *) echo "error: unkown or unsupported distro: \`$1'"; exit 1 ;;
 esac
 
@@ -73,19 +73,8 @@ preserve-environment=true
 EOL
 
 schroot -c $id -- cp -f /etc/apt/sources.list /etc/apt/sources.list.backup
-
-if [ "$codename" = "precise" ]; then
-  # ${codename}-updates breaks bootstrapping of Ubuntu 12.04
-  schroot -c $id -- printf "deb $mirror $codename $repos\ndeb $mirror ${codename}-security $repos\n" | \
-    schroot -c $id -- tee /etc/apt/sources.list
-else
-  schroot -c $id -- printf "deb $mirror $codename $repos\ndeb $mirror ${codename}-updates $repos\ndeb $mirror ${codename}-security $repos\n" | \
-    schroot -c $id -- tee /etc/apt/sources.list
-fi
-
-if [ $arch = amd64 ] && [ "$codename" != "precise" ]; then
-  schroot -c $id -- dpkg --add-architecture i386
-fi
+schroot -c $id -- printf "deb $mirror $codename $repos\ndeb $mirror ${codename}-updates $repos\ndeb $mirror ${codename}-security $repos\n" | \
+  schroot -c $id -- tee /etc/apt/sources.list
 echo "---- $id: update packages"
 schroot -c $id -- apt-get -y update && apt-get -y upgrade && apt-get -y dist-upgrade
 echo "---- $id: install extra packages"
