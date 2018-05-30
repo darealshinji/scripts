@@ -8,29 +8,29 @@ s=3
 user=darealshinji
 
 if [ -z "$1" ]; then
-  repos=$(curl -s https://api.github.com/users/$user/repos?per_page=100 | grep '"name":' | cut -d '"' -f4)
+  repos=$(curl -s https://api.github.com/users/$user/repos?per_page=100 | grep "full_name" | sed 's|^.*\/||; s|",||')
 else
   repos="$@"
 fi
 
 for repo in $repos ; do
   sleep $s
-  if [ -e $repo/data/.git ] ; then
-    git -C $repo/data pull origin
-    rm -rf $repo/data/*
+  if [ -e "$repo/data/.git" ] ; then
+    git -C "$repo/data" pull origin
+    rm -rf "$repo/data"/*
   else
-    rm -rf $repo
-    mkdir -p $repo
-    cd $repo
-    git clone https://github.com/$user/$repo
-    mv $repo data
+    rm -rf "$repo"
+    mkdir -p "$repo"
+    cd "$repo"
+    git clone "https://github.com/$user/$repo"
+    mv "$repo" data
     rm -rf data/*
     test -d data/.git
     cd -
   fi
   sleep $s
-  rm -rf $repo/releases/continuous
-  urls=$(curl -s https://api.github.com/repos/$user/$repo/releases | grep 'browser_download_url' | cut -d '"' -f4)
+  rm -rf "$repo/releases/continuous"
+  urls=$(curl -s "https://api.github.com/repos/$user/$repo/releases" | grep 'browser_download_url' | cut -d '"' -f4)
   if [ -n "$urls" ] ; then
     for url in $urls ; do
       dir="$repo/releases/$(basename $(dirname $url))"
