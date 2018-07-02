@@ -70,6 +70,17 @@ then
   echo "Warning: script was made for \"Bash on Windows\"" > /dev/stderr
 fi
 
+# Currently only support Debian or Ubuntu images for WSL
+
+myos=$(grep '^ID=' /etc/os-release | cut -f2 -d\=)
+if [[ $myos = debian ]] ; then
+  lxss=$(win_env LOCALAPPDATA)/Packages/TheDebianProject.DebianGNULinux_76v4gfsz19hv4/LocalState
+elif [[ $myos = ubuntu ]] ; then
+  lxss=$(win_env LOCALAPPDATA)/Packages/CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc/LocalState
+else
+  echo "Warning: wslpath only supports debian and ubuntu images. (OS found: $myos)" > /dev/stderr
+fi
+
 if [ -z "$1" ]; then
   print_usage 1
 fi
@@ -112,7 +123,6 @@ done
 
 p=$(echo $last | sed -e 's|\\\+|/|g;s|/\+|/|g')
 
-lxss=$(win_env LOCALAPPDATA)/lxss
 if [ $subst_home = yes ] && [ $to_unix = no ]; then
   userprofile=$(win_env USERPROFILE)
   drive=${userprofile:0:1}
@@ -151,6 +161,9 @@ else
     if [ -n "$(echo ${p:0:7} | grep -e '^/mnt/[a-z]/\?$')" ]; then
       drive=${p:5:1}
       p=${drive^^}:${p:6}
+    elif [ -n "$(echo ${p:0:3} | grep -e '^/[a-z]/\?$')" ]; then
+        drive=${p:1:1}
+        p=${drive^^}:${p:2}
     else
       firstDir=/$(echo $p | cut -d'/' -f2)
       offset=$(printf "$firstDir" | wc -m)
