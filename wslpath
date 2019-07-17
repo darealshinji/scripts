@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "This script is deprecated and no longer maintained."
+echo "Use the wslpath tool that is now provided by default."
+exit
+
 # This is free and unencumbered software released into the public domain.
 #
 # Anyone is free to copy, modify, publish, use, compile, sell, or
