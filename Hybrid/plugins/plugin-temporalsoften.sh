@@ -1,0 +1,1 @@
+mkgh dubhater/vapoursynth-temporalsoften libtemporalsoften
