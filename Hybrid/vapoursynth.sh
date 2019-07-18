@@ -118,7 +118,7 @@ make install
 
 # VapourSynth
 export PYTHONUSERBASE="$vsprefix"
-pip3 install --upgrade --user cython
+pip3 install -q --upgrade --user cython
 git clone https://github.com/vapoursynth/vapoursynth
 cd vapoursynth
 git checkout $(git tag | grep '^R' | sort -V | tail -1)
@@ -126,7 +126,7 @@ autoreconf -if
 ./configure --prefix="$vsprefix" --disable-static
 make -j$JOBS
 make install-strip
-pip3 uninstall -y cython
+pip3 uninstall -y -q cython
 
 pyver=$(python3 -c "import sys; sys.stdout.write(sys.version[:3])")
 cat <<EOF >"$vsprefix/env.sh"

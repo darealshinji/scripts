@@ -39,68 +39,68 @@ else
   args="$*"
 fi
 
-sudo apt update
-sudo apt upgrade -y
-sudo apt install --no-install-recommends -y \
- build-essential \
- git \
- subversion \
- wget \
- cmake \
- nasm \
- yasm \
- unzip \
- upx-ucl \
- autoconf \
- automake \
- gettext \
- libtool-bin \
- pkg-config \
- qt5-default \
- docbook-xsl \
- xsltproc \
- rake \
- ragel \
- libgl1-mesa-dev \
- libboost-filesystem-dev \
- libboost-system-dev \
- libboost-regex-dev \
- libboost-date-time-dev \
- libdvdread-dev \
- libogg-dev \
- libvorbis-dev \
- libflac-dev \
- zlib1g-dev \
- liblzma-dev \
- libbz2-dev \
- libpng-dev \
- libjpeg-dev \
- libgif-dev \
- libopenal-dev \
- libasound-dev \
- libpulse-dev \
- libopencore-amrnb-dev \
- libopencore-amrwb-dev \
- libmp3lame-dev \
- libopus-dev \
- libopusfile-dev \
- libsndfile-dev \
- libwavpack-dev \
- libmagic-dev \
- libnuma-dev \
- libbluray-dev \
- libxvidcore-dev \
- libva-dev \
- libvdpau-dev \
- libxml2-dev \
- libfreetype6-dev \
- libfontconfig1-dev \
- libxcb1-dev \
- libxcb-shm?-dev \
- libxcb-xfixes?-dev \
- libxcb-shape?-dev
-
-sudo apt clean
+if [ -x "/usr/bin/apt" ]; then
+  sudo apt update
+  sudo apt upgrade -y
+  sudo apt install --no-install-recommends -y \
+  build-essential \
+  git \
+  subversion \
+  wget \
+  cmake \
+  nasm \
+  yasm \
+  unzip \
+  upx-ucl \
+  autoconf \
+  automake \
+  gettext \
+  libtool-bin \
+  pkg-config \
+  qt5-default \
+  docbook-xsl \
+  xsltproc \
+  rake \
+  ragel \
+  libgl1-mesa-dev \
+  libboost-filesystem-dev \
+  libboost-system-dev \
+  libboost-regex-dev \
+  libboost-date-time-dev \
+  libdvdread-dev \
+  libogg-dev \
+  libvorbis-dev \
+  libflac-dev \
+  zlib1g-dev \
+  liblzma-dev \
+  libbz2-dev \
+  libpng-dev \
+  libjpeg-dev \
+  libgif-dev \
+  libopenal-dev \
+  libasound-dev \
+  libpulse-dev \
+  libopencore-amrnb-dev \
+  libopencore-amrwb-dev \
+  libmp3lame-dev \
+  libopus-dev \
+  libopusfile-dev \
+  libsndfile-dev \
+  libwavpack-dev \
+  libmagic-dev \
+  libnuma-dev \
+  libbluray-dev \
+  libxvidcore-dev \
+  libva-dev \
+  libvdpau-dev \
+  libxml2-dev \
+  libfreetype6-dev \
+  libfontconfig1-dev \
+  libxcb1-dev \
+  libxcb-shm?-dev \
+  libxcb-xfixes?-dev \
+  libxcb-shape?-dev
+fi
 
 rm -rf build
 
@@ -597,8 +597,24 @@ then
   git clone https://github.com/gpac/gpac build
   cd build
   git checkout $(git tag --list | sort -V | tail -1)
-  ./configure --enable-static-bin
-  make $MAKEFLAGS
+  ./configure --static-mp4box \
+    --disable-wx \
+    --disable-alsa \
+    --disable-jack \
+    --disable-pulseaudio \
+    --disable-x11 \
+    --disable-ssl \
+    --use-js=no \
+    --use-faad=no \
+    --use-mad=no \
+    --use-xvid=no \
+    --use-ffmpeg=no \
+    --use-ogg=no \
+    --use-vorbis=no \
+    --use-theora=no \
+    --use-openjpeg=no \
+    --use-a52=no
+  make $MAKEFLAGS || true
   strip bin/gcc/MP4Box
   cp -f bin/gcc/MP4Box ..
   cd ..

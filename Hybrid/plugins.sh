@@ -5,6 +5,17 @@ set -e
 JOBS=4
 stamp="dependencies_for_plugins_installed.stamp"
 
+vsprefix="$HOME/opt/vapoursynth"
+
+export PATH="$vsprefix/bin:$PATH"
+export LD_LIBRARY_PATH="$vsprefix/lib"
+export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
+
+if ! pkg-config --exists vapoursynth libavcodec ; then
+  echo "error: missing a local installation of FFmpeg libraries and Vapoursynth in \`$vsprefix'"
+  exit 1
+fi
+
 if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
   set -x
 
@@ -38,12 +49,6 @@ if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
   set +x
 fi
 
-vsprefix="$HOME/opt/vapoursynth"
-
-export PATH="$vsprefix/bin:$PATH"
-export LD_LIBRARY_PATH="$vsprefix/lib"
-export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
-
 mkdir -p build/logs
 cd build
 
@@ -75,8 +80,8 @@ if [ ! -x "$vsprefix/bin/cmake" ]; then
 fi
 
 export PYTHONUSERBASE="$vsprefix"
-pip3 install --upgrade --user setuptools wheel  # must be installed first
-pip3 install --upgrade --user meson ninja
+pip3 install -q --upgrade --user setuptools wheel  # must be installed first
+pip3 install -q --upgrade --user meson ninja
 
 plugins=$(ls -1 ../plugins/plugin-*.sh | sed 's|^\.\./plugins/plugin-||g; s|\.sh$||g')
 #plugins="waifu2x-w2xc"
@@ -97,7 +102,7 @@ done
 
 echo ""
 
-pip3 uninstall -y setuptools wheel meson ninja
+pip3 uninstall -y -q setuptools wheel meson ninja
 
 s=$SECONDS
 printf "\nfinished after %d min %d sec\n" $(($s / 60)) $(($s % 60))
