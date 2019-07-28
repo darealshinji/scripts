@@ -33,11 +33,12 @@ build ()
     python3 ./waf configure
     python3 ./waf build -j$JOBS
   else
-    if [ ! -x configure -a -f configure.ac ]; then
+    if [ ! -e configure -a -f configure.ac ]; then
       autoreconf -if
     fi
 
-    if [ -x configure ]; then
+    if [ -e configure ]; then
+      chmod a+x configure
       if grep -q -- '--extra-cflags' configure && grep -q -- '--extra-cxxflags' configure ; then
         ./configure --extra-cflags="$CFLAGS" --extra-cxxflags="$CXXFLAGS" --extra-ldflags="$LDFLAGS" || cat config.log
       elif grep -q -- '--extra-cflags' configure ; then
@@ -75,6 +76,6 @@ export PATH="$vsprefix/bin:$PATH"
 export LD_LIBRARY_PATH="$vsprefix/lib"
 export PYTHONUSERBASE="$vsprefix"
 export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
-export CFLAGS="-pipe -O3 -Wno-attributes -fPIC -fvisibility=hidden -fno-strict-aliasing $(pkg-config --cflags vapoursynth) -I/usr/include/compute"
+export CFLAGS="-pipe -O3 -march=native -Wno-attributes -fPIC -fvisibility=hidden -fno-strict-aliasing $(pkg-config --cflags vapoursynth) -I/usr/include/compute"
 export CXXFLAGS="$CFLAGS -Wno-reorder"
 

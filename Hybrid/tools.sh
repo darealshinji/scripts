@@ -255,7 +255,7 @@ then
   cp -f build/release-64bit-gcc/vsViewer ..
   cd ..
   rm -rf build
-  cat <<EOF >vsViewer_withenv.sh
+  cat <<EOF >vapoursynth_env.sh
 #!/bin/sh
 scriptDir="\$(dirname "\$(readlink -f "\$0")")"
 
@@ -277,7 +277,7 @@ fi
 
 "\$scriptDir/vsViewer" \$*
 EOF
-  chmod a+x vsViewer_withenv.sh
+  chmod a+x vapoursynth_env.sh
 fi
 
 ### lsdvd
@@ -794,6 +794,116 @@ then
 https://github.com/bcoudurier/FFmbc
 $(git -C build rev-parse HEAD)
 EOL
+  rm -rf build
+fi
+
+### d2vwitch
+if echo "$args" | grep -q -i -w -E 'all|d2vwitch'
+then
+  mkdir build
+  cd build
+
+  top="$PWD"
+  export PATH="$top:$PATH"
+  export PKG_CONFIG_PATH="$top/libs/lib/pkgconfig"
+
+  git clone --depth 1 https://github.com/dubhater/D2VWitch
+  git clone --depth 1 https://github.com/FFmpeg/FFmpeg
+  git clone --depth 1 https://github.com/vapoursynth/vapoursynth
+
+  build_nasm
+
+  cd FFmpeg
+  ./configure --prefix="$top/libs" \
+    --enable-gpl \
+    --enable-version3 \
+    --disable-encoders \
+    --disable-muxers \
+    --disable-outdevs \
+    --disable-programs \
+    --disable-doc \
+    --disable-debug \
+    --disable-xlib \
+    --disable-sdl2 \
+    --extra-cflags="-ffunction-sections -fdata-sections"
+  make $MAKEFLAGS
+  make install
+
+  cd ../D2VWitch
+  autoreconf -if
+  vapoursynth_CFLAGS="-I../vapoursynth/include" \
+  vapoursynth_LIBS=" " \
+  LDFLAGS="-Wl,--gc-sections" \
+    ./configure
+  make $MAKEFLAGS
+  strip d2vwitch
+  cp -f d2vwitch ../..
+  cd ..
+
+  cat <<EOL >../d2vwitch-sources.txt
+https://github.com/dubhater/D2VWitch
+$(git -C D2VWitch rev-parse HEAD)
+
+https://github.com/FFmpeg/FFmpeg
+$(git -C FFmpeg rev-parse HEAD)
+
+https://github.com/vapoursynth/vapoursynth
+$(git -C vapoursynth rev-parse HEAD)
+EOL
+
+  cd ..
+  rm -rf build
+fi
+
+### ffmsindex
+if echo "$args" | grep -q -i -w -E 'all|ffmsindex'
+then
+  mkdir build
+  cd build
+
+  top="$PWD"
+  export PATH="$top:$PATH"
+  export PKG_CONFIG_PATH="$top/libs/lib/pkgconfig"
+
+  git clone --depth 1 https://github.com/FFMS/ffms2
+  git clone --depth 1 https://github.com/FFmpeg/FFmpeg
+
+  build_nasm
+
+  cd FFmpeg
+  ./configure --prefix="$top/libs" \
+    --enable-gpl \
+    --enable-version3 \
+    --disable-encoders \
+    --disable-muxers \
+    --disable-outdevs \
+    --disable-programs \
+    --disable-doc \
+    --disable-debug \
+    --disable-xlib \
+    --disable-sdl2 \
+    --extra-cflags="-ffunction-sections -fdata-sections"
+  make $MAKEFLAGS
+  make install
+
+  cd ../ffms2
+  mkdir -p src/config
+  autoreconf -if
+  LDFLAGS="-Wl,--gc-sections" ./configure --disable-shared
+  make $MAKEFLAGS
+  strip src/index/ffmsindex
+  cp -f src/index/ffmsindex ../..
+  cd ..
+
+  cat <<EOL >../ffmsindex-sources.txt
+https://github.com/FFMS/ffms2
+$(git -C ffms2 rev-parse HEAD)
+
+https://github.com/FFmpeg/FFmpeg
+$(git -C FFmpeg rev-parse HEAD)
+EOL
+
+  cd ..
   rm -rf build
 fi
 

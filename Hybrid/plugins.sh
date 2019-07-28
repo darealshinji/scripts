@@ -11,7 +11,7 @@ export PATH="$vsprefix/bin:$PATH"
 export LD_LIBRARY_PATH="$vsprefix/lib"
 export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
 
-if ! pkg-config --exists vapoursynth libavcodec ; then
+if [ ! -e "$vsprefix/lib/pkgconfig/vapoursynth.pc" -a ! -e "$vsprefix/lib/pkgconfig/libavcodec.pc" ]; then
   echo "error: missing a local installation of FFmpeg libraries and Vapoursynth in \`$vsprefix'"
   exit 1
 fi
@@ -39,10 +39,11 @@ if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
     libboost-dev \
     libboost-filesystem-dev \
     libboost-system-dev \
-    libbluray-dev
+    libbluray-dev \
+    libpng-dev
 
   # only on Ubuntu 16.04 ...
-  sudo apt install libcompute-dev || true
+  sudo apt install --no-install-recommends libcompute-dev || true
 
   touch $stamp
 
@@ -84,7 +85,7 @@ pip3 install -q --upgrade --user setuptools wheel  # must be installed first
 pip3 install -q --upgrade --user meson ninja
 
 plugins=$(ls -1 ../plugins/plugin-*.sh | sed 's|^\.\./plugins/plugin-||g; s|\.sh$||g')
-#plugins="waifu2x-w2xc"
+plugins="vsimagereader"
 count=$(echo $plugins | wc -w)
 n=0
 

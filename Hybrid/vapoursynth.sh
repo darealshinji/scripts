@@ -46,8 +46,8 @@ vsprefix="$HOME/opt/vapoursynth"
 
 export PATH="$vsprefix/bin:$PATH"
 export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
-export CFLAGS="-pipe -O3 -fno-strict-aliasing -Wno-deprecated-declarations"
-export CXXFLAGS="-pipe -O3 -fno-strict-aliasing -Wno-deprecated-declarations"
+export CFLAGS="-pipe -O3 -march=native -fno-strict-aliasing -Wno-deprecated-declarations"
+export CXXFLAGS="$CFLAGS"
 
 mkdir build
 cd build

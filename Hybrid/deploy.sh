@@ -1,6 +1,7 @@
 #!/bin/bash
 
-binaries_copy="nvhsp vsViewer_withenv.sh build-vapoursynth.sh"
+misc_files="vapoursynth.sh plugins.sh plugins/ README"
+binaries_copy="nvhsp vapoursynth_env.sh"
 binaries_qt="Hybrid bdsup2sub++ delaycut FrameCounter IdxSubCutter vsViewer"
 binaries_32bit="DivX265 neroAacEnc tsMuxeR"
 binaries_64bit="""
@@ -81,6 +82,7 @@ cp ../*.txt ./usr/share/doc
 
 cd ..
 cp $binaries_copy ./$deploy_dir/usr/bin
+cp -r $misc_files ./$deploy_dir
 cd $deploy_dir
 
 mv ./usr/* .
@@ -115,5 +117,7 @@ EOF
 rm -rf ./usr ./bin ./share ./patchelf *.AppImage
 cd ..
 
-7z a -m0=lzma2 -mx Hybrid.7z hybrid
+rsync -r build/* $deploy_dir/vsfilters/
+now=$(date +"%Y%m%d")
+7z a -m0=lzma2 -mx "Hybrid_$now.7z" $deploy_dir
 
