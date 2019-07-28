@@ -1,6 +1,6 @@
 #!/bin/bash
 
-misc_files="vapoursynth.sh plugins.sh plugins/ README"
+misc_files="vapoursynth.sh plugins.sh build-plugins/ README"
 binaries_copy="nvhsp vapoursynth_env.sh"
 binaries_qt="Hybrid bdsup2sub++ delaycut FrameCounter IdxSubCutter vsViewer"
 binaries_32bit="DivX265 neroAacEnc tsMuxeR"

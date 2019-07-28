@@ -84,7 +84,7 @@ export PYTHONUSERBASE="$vsprefix"
 pip3 install -q --upgrade --user setuptools wheel  # must be installed first
 pip3 install -q --upgrade --user meson ninja
 
-plugins=$(ls -1 ../plugins/plugin-*.sh | sed 's|^\.\./plugins/plugin-||g; s|\.sh$||g')
+plugins=$(ls -1 ../build-plugins/plugin-*.sh | sed 's|^\.\./build-plugins/plugin-||g; s|\.sh$||g')
 plugins="vsimagereader"
 count=$(echo $plugins | wc -w)
 n=0
@@ -94,7 +94,7 @@ echo "Build plugins:"
 
 for p in $plugins ; do
   rm -rf build
-  cat ../plugins/header.sh ../plugins/plugin-${p}.sh > build.sh
+  cat ../build-plugins/header.sh ../build-plugins/plugin-${p}.sh > build.sh
   n=$(($n + 1))
   printf " %s (%d/%d) ... " $p $n $count
   sh ./build.sh >logs/${p}.log 2>&1 && echo "done" || echo "failed"
