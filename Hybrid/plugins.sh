@@ -85,7 +85,7 @@ pip3 install -q --upgrade --user setuptools wheel  # must be installed first
 pip3 install -q --upgrade --user meson ninja
 
 plugins=$(ls -1 ../build-plugins/plugin-*.sh | sed 's|^\.\./build-plugins/plugin-||g; s|\.sh$||g')
-plugins="vsimagereader"
+#plugins="vsimagereader"
 count=$(echo $plugins | wc -w)
 n=0
 
