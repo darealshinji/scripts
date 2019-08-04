@@ -102,7 +102,8 @@ if [ -x "/usr/bin/apt" ]; then
   libxcb-shape?-dev
 fi
 
-rm -rf build
+mkdir -p tools
+cd tools
 
 
 ### downloads only ###
@@ -255,7 +256,7 @@ then
   cp -f build/release-64bit-gcc/vsViewer ..
   cd ..
   rm -rf build
-  cat <<EOF >vapoursynth_env.sh
+  cat <<EOF >vsfilters_env.sh
 #!/bin/sh
 scriptDir="\$(dirname "\$(readlink -f "\$0")")"
 
@@ -277,7 +278,7 @@ fi
 
 "\$scriptDir/vsViewer" \$*
 EOF
-  chmod a+x vapoursynth_env.sh
+  chmod a+x vsfilters_env.sh
 fi
 
 ### lsdvd

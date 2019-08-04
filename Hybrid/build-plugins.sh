@@ -3,7 +3,7 @@
 set -e
 
 JOBS=4
-stamp="dependencies_for_plugins_installed.stamp"
+#stamp="dependencies_for_plugins_installed.stamp"
 
 vsprefix="$HOME/opt/vapoursynth"
 
@@ -16,7 +16,7 @@ if [ ! -e "$vsprefix/lib/pkgconfig/vapoursynth.pc" -a ! -e "$vsprefix/lib/pkgcon
   exit 1
 fi
 
-if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
+#if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
   set -x
 
   sudo apt update
@@ -45,10 +45,10 @@ if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
   # only on Ubuntu 16.04 ...
   sudo apt install --no-install-recommends libcompute-dev || true
 
-  touch $stamp
+  #touch $stamp
 
   set +x
-fi
+#fi
 
 mkdir -p build/logs
 cd build
@@ -85,7 +85,7 @@ pip3 install -q --upgrade --user setuptools wheel  # must be installed first
 pip3 install -q --upgrade --user meson ninja
 
 plugins=$(ls -1 ../build-plugins/plugin-*.sh | sed 's|^\.\./build-plugins/plugin-||g; s|\.sh$||g')
-#plugins="vsimagereader"
+#plugins="waifu2x-w2xc"
 count=$(echo $plugins | wc -w)
 n=0
 

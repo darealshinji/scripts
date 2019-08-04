@@ -3,13 +3,13 @@
 
 # build script for Ubuntu 16.04 or newer
 
+JOBS=4
+#stamp="dependencies_for_vapoursynth_installed.stamp"
+
 set -e
 set -x
 
-JOBS=4
-stamp="dependencies_for_vapoursynth_installed.stamp"
-
-if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
+#if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
   sudo apt update
   sudo apt upgrade
   sudo apt install --no-install-recommends \
@@ -19,7 +19,7 @@ if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
     autoconf \
     automake \
     libtool \
-    python3-dev \
+    libtool-bin \
     libltdl-dev \
     libva-dev \
     libvdpau-dev \
@@ -39,15 +39,17 @@ if [ ! -e $stamp -a -x "/usr/bin/apt" ]; then
     libopenjp2-?-dev \
     libxml2-dev
 
-  touch $stamp
-fi
+  #touch $stamp
+#fi
 
 vsprefix="$HOME/opt/vapoursynth"
 
 export PATH="$vsprefix/bin:$PATH"
 export PKG_CONFIG_PATH="$vsprefix/lib/pkgconfig"
-export CFLAGS="-pipe -O3 -march=native -fno-strict-aliasing -Wno-deprecated-declarations"
+export CFLAGS="-pipe -O3 -fno-strict-aliasing -Wno-deprecated-declarations"
 export CXXFLAGS="$CFLAGS"
+
+TOP="$PWD"
 
 mkdir build
 cd build
@@ -117,23 +119,26 @@ make install
 #EOL
 
 # VapourSynth
-export PYTHONUSERBASE="$vsprefix"
-pip3 install -q --upgrade --user cython
 git clone https://github.com/vapoursynth/vapoursynth
 cd vapoursynth
 git checkout $(git tag | grep '^R' | sort -V | tail -1)
 autoreconf -if
-./configure --prefix="$vsprefix" --disable-static
+./configure --prefix="$vsprefix" --disable-static --disable-vspipe --disable-vsscript --disable-python-module
 make -j$JOBS
 make install-strip
+rm -f "$vsprefix"/lib/libvapoursynth-script.*
+make maintainer-clean
+
+export PYTHONUSERBASE="$PWD/temp"
+pip3 install -q --user cython
+./temp/bin/cython --3str src/cython/vapoursynth.pyx
 pip3 uninstall -y -q cython
 
-pyver=$(python3 -c "import sys; sys.stdout.write(sys.version[:3])")
-cat <<EOF >"$vsprefix/env.sh"
-# source this file with
-export PYTHONPATH="$vsprefix/lib/python$pyver/site-packages:\$PYTHONPATH"
-export LD_LIBRARY_PATH="$vsprefix/lib:\$LD_LIBRARY_PATH"
-EOF
+echo "$PWD"
+rm -rf .git
+cp -rf "$PWD" "$vsprefix/src"
+cp -f "$TOP/install-vs.sh" "$vsprefix"
+chmod a+x "$vsprefix/install-vs.sh"
 
 set +x
 

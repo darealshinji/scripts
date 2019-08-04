@@ -1,8 +1,8 @@
 #!/bin/bash
 
-misc_files="vapoursynth.sh plugins.sh build-plugins/ README"
-binaries_copy="nvhsp vapoursynth_env.sh"
-binaries_qt="Hybrid bdsup2sub++ delaycut FrameCounter IdxSubCutter vsViewer"
+readme_file="README"
+binaries_copy="nvhsp vsfilters_env.sh"
+binaries_qt="Hybrid bdsup2sub++ d2vwitch delaycut FrameCounter IdxSubCutter vsViewer"
 binaries_32bit="DivX265 neroAacEnc tsMuxeR"
 binaries_64bit="""
 aac-enc
@@ -12,6 +12,7 @@ faac
 ffdcaenc
 ffmbc
 ffmpeg
+ffmsindex
 flac
 FLVExtractCL
 kvazaar
@@ -54,11 +55,13 @@ sudo apt install --no-install-recommends -y \
   p7zip-full \
   libqt5multimedia5 \
   libqt5multimedia5-plugins \
+  libqt5xml5 \
   libfreetype6:i386 \
   zlib1g:i386 \
   libgcc1:i386 \
   libstdc++6:i386
 
+cd tools
 rm -rf $deploy_dir
 mkdir $deploy_dir
 cd $deploy_dir
@@ -66,11 +69,12 @@ cd $deploy_dir
 git clone --depth=1 https://github.com/Selur/VapoursynthScriptsInHybrid vsscripts
 rm -rf vsscripts/.git
 
-url_deploy="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-url_qtdeploy="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
-wget $url_deploy || cp ../linuxdeploy-x86_64.AppImage .
-wget $url_qtdeploy || cp ../linuxdeploy-plugin-qt-x86_64.AppImage .
+wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
 chmod a+x *.AppImage
+
+# https://github.com/linuxdeploy/linuxdeploy/issues/86
+sed -i 's|AI\x02|\x00\x00\x00|' *.AppImage
 
 cmdLine="--appdir=. --plugin qt -l/usr/lib/i386-linux-gnu/libfreetype.so.6 -l/lib/i386-linux-gnu/libz.so.1"
 for bin in $binaries_qt $binaries_64bit $binaries_32bit ; do
@@ -82,7 +86,7 @@ cp ../*.txt ./usr/share/doc
 
 cd ..
 cp $binaries_copy ./$deploy_dir/usr/bin
-cp -r $misc_files ./$deploy_dir
+cp $readme_file ./$deploy_dir
 cd $deploy_dir
 
 mv ./usr/* .
@@ -117,7 +121,7 @@ EOF
 rm -rf ./usr ./bin ./share ./patchelf *.AppImage
 cd ..
 
-rsync -r build/* $deploy_dir/vsfilters/
+#rsync -r build/* $deploy_dir/vsfilters/
 now=$(date +"%Y%m%d")
 7z a -m0=lzma2 -mx "Hybrid_$now.7z" $deploy_dir
 
