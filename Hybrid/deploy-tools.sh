@@ -123,5 +123,5 @@ cd ..
 
 #rsync -r build/* $deploy_dir/vsfilters/
 now=$(date +"%Y%m%d")
-7z a -m0=lzma2 -mx "Hybrid_$now.7z" $deploy_dir
+7z a -m0=lzma2 -mx "../Hybrid_$now.7z" $deploy_dir
 
