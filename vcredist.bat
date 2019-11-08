@@ -21,6 +21,9 @@ wget.exe --no-hsts -c -O vc_redist_2010.x86.exe https://download.microsoft.com/d
 wget.exe --no-hsts -c -O vc_redist_2008.x64.exe https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe || goto :error
 wget.exe --no-hsts -c -O vc_redist_2008.x86.exe https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe || goto :error
 
+wget.exe --no-hsts -c -O vc_redist_2005.x64.exe https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x64.EXE
+wget.exe --no-hsts -c -O vc_redist_2005.x86.exe https://download.microsoft.com/download/8/B/4/8B42259F-5D70-43F4-AC2E-4B208FD8D66A/vcredist_x86.EXE
+
 vc_redist_2015-2019.x64.exe /install /passive /norestart || goto :error
 vc_redist_2015-2019.x86.exe /install /passive /norestart || goto :error
 vc_redist_2013.x64.exe /install /passive /norestart || goto :error
@@ -31,6 +34,8 @@ vc_redist_2010.x64.exe /install /passive /norestart || goto :error
 vc_redist_2010.x86.exe /install /passive /norestart || goto :error
 vc_redist_2008.x64.exe || goto :error
 vc_redist_2008.x86.exe || goto :error
+vc_redist_2005.x64.exe || goto :error
+vc_redist_2005.x86.exe || goto :error
 
 pause
 exit
