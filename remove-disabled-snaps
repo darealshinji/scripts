@@ -1,0 +1,44 @@
+#!/bin/bash
+set -e
+export LANG=C
+
+pkgs=( $(snap list --all | grep 'disabled$' | awk '{print $1}') )
+vers=( $(snap list --all | grep 'disabled$' | awk '{print $3}') )
+count=$(echo ${pkgs[*]} | wc -w)
+count2=$(echo ${vers[*]} | wc -w)
+
+if [ $count != $count2 ]; then
+  echo "error counting snaps"
+  exit 1
+fi
+
+if [ $count -le 0 ]; then
+  echo "No disabled snaps to be removed."
+  exit 0
+fi
+
+echo "Disabled snaps which can safely be removed:"
+n=0
+sum_size=0
+
+while [ $n -lt $count ]; do
+  size=$(du -b "/var/lib/snapd/snaps/${pkgs[$n]}_${vers[$n]}.snap" 2>/dev/null | awk '{print $1}')
+
+  if [ "x$size" != "x" ]; then
+	printf "  %s [r%s]: %sB\n" ${pkgs[$n]} ${vers[$n]} $(echo "$size" | numfmt --to=iec-i)
+    sum_size=$((sum_size + size))
+  fi
+
+  n=$((n+1))
+done
+
+printf "Summary: %sB to free\n\n" $(printf $sum_size | numfmt --to=iec-i)
+[[ "$(read -e -p "Remove the listed snaps? [y/N] "; echo $REPLY)" != [Yy]* ]] && exit
+
+n=0
+
+while [ $n -lt $count ]; do
+  eval "sudo snap remove ${pkgs[$n]} --revision=${vers[$n]}"
+  n=$((n+1))
+done
+
