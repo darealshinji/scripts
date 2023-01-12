@@ -4,17 +4,20 @@
 
 set -e
 
-users="$(whoami)"
-mirror=http://de2.archive.ubuntu.com/ubuntu/
-#mirror=http://ftp.de.debian.org/debian
+mirror=http://archive.ubuntu.com/ubuntu/
+#mirror=http://us.archive.ubuntu.com/ubuntu/
+#mirror=http://ftp.us.debian.org/debian
 repos="main restricted universe multiverse"
 pfx=/opt/chroot
 extra_packages="build-essential nano bash-completion command-not-found software-properties-common"
 
-if [ -z $1 ]; then
-  echo "usage: $0 trusty|xenial|bionic|cosmic [i386]"
+if [ -z $1 ] || [ -z $2 ]; then
+  echo "usage: $0 codename username [i386]"
   exit 1
 fi
+
+codename=$1
+users=$2
 
 if [ "$(uname -m)" != "x86_64" ]; then
   echo "error: script was made for x86_64 (aka amd64) architectures"
@@ -26,12 +29,7 @@ if [ $EUID -ne 0 ]; then
   exit 1
 fi
 
-case $1 in
-  trusty|xenial|bionic|cosmic) codename=$1 ;;
-  *) echo "error: unkown or unsupported distro: \`$1'"; exit 1 ;;
-esac
-
-if [ "x$2" = "xi386" ]; then
+if [ "x$3" = "xi386" ]; then
   id=${codename}32
   arch=i386
 else
