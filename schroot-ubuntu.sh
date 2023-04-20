@@ -17,7 +17,7 @@ if [ -z $1 ] || [ -z $2 ]; then
 fi
 
 codename=$1
-users=$2
+user=$2
 
 if [ "$(uname -m)" != "x86_64" ]; then
   echo "error: script was made for x86_64 (aka amd64) architectures"
@@ -58,7 +58,8 @@ cat <<EOL>> /etc/schroot/schroot.conf
 [$id]
 description=Ubuntu $codename $arch
 directory=$pfx/$id
-users=$users
+users=$user
+groups=${user},wheels
 type=directory
 profile=desktop
 EOL
